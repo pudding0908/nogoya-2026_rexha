@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>日本九州行 - 夢幻隨行手帳</title>
+  
+  <!-- FontAwesome 圖標 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- 引入 Google Fonts 圓體字型，增添可愛感 -->
+  <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    /* ==========================================
+       馬卡龍可愛風配色 & 質感排版
+       ========================================== */
+    :root {
+      --bg-base: #FFF0F5;         /* 薰衣草粉白底色 */
+      --card-bg: #FFFFFF;         /* 卡片純白 */
+      --primary-color: #FFB7C5;   /* 馬卡龍粉紅 */
+      --primary-dark: #E898A6;    /* 深一點的粉紅 */
+      --accent-yellow: #FFF1C1;   /* 馬卡龍粉黃 */
+      --accent-purple: #E2D9F3;   /* 馬卡龍粉紫 */
+      --secondary-blue: #B5E2FA;  /* 馬卡龍粉藍 */
+      --text-dark: #5A5255;       /* 溫和深色主字體 */
+      --text-muted: #8C8285;      /* 灰色說明字 */
+      --time-text: #9A8C93;       /* 時間軸時間字色 */
+      --timeline-line: #FFD1DC;   /* 時間軸線條 (粉紅線) */
+      --border-color: #FCE4EC;    /* 邊框線 */
+      --shadow-card: 0 8px 20px rgba(255, 183, 197, 0.25);
+
+      /* 分類膠囊顏色 (馬卡龍色系) */
+      --tag-spot: #FFD1DC;     /* 景點：櫻花粉紅 */
+      --tag-food: #FFE5B4;     /* 餐飲：蜜桃橘 */
+      --tag-stay: #C1F0F6;     /* 住宿：天空藍 */
+      --tag-traffic: #E2D9F3;  /* 交通：粉紫 */
+      --tag-shop: #D4F0F0;     /* 購物：柔和藍紫 */
+      --tag-important: #FFF5BA;/* 重要：奶油黃 */
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      font-family: 'Noto Sans TC', 'Quicksand', sans-serif;
+    }
+
+    html, body {
+      width: 100%;
+      max-width: 100%;
+      overflow-x: hidden;
+      background-color: var(--bg-base);
+      color: var(--text-dark);
+      line-height: 1.5;
+      font-size: 16px;
+      padding-bottom: 30px;
+    }
+
+    .fixed-header-group {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      width: 100%;
+      z-index: 999;
+      background-color: var(--bg-base);
+      box-shadow: 0 4px 12px rgba(255, 183, 197, 0.15);
+    }
+
+    .header-content-wrapper {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .header-card {
+      background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-blue) 100%);
+      color: #FFFFFF;
+      padding: 14px 18px 12px 18px;
+      border-bottom-left-radius: 20px;
+      border-bottom-right-radius: 20px;
+      box-shadow: 0 4px 15px rgba(255, 183, 197, 0.4);
+    }
+
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .header-subtitle {
+      font-size: 13px;
+      letter-spacing: 1.5px;
+      color: #FFFFFF;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+
+    .sync-btn {
+      background: rgba(255, 255, 255, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      color: #FFFFFF;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      backdrop-filter: blur(4px);
+      transition: all 0.2s;
+    }
+
+    .sync-btn:active {
+      transform: scale(0.95);
+    }
+
+    .header-title {
+      font-size: 20px;
+      font-weight: bold;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.08);
+    }
+
+    .header-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background-color: rgba(255, 255, 255, 0.3);
+      backdrop-filter: blur(4px);
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      color: #FFFFFF;
+      font-weight: 500;
+    }
+
+    .date-tabs-wrapper {
+      padding: 10px 12px;
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: var(--bg-base);
+    }
+
+    .date-tabs {
+      display: flex;
+      justify-content: space-between;
+      gap: 6px;
+      width: 100%;
+    }
+
+    .tab-pill {
+      flex: 1;
+      background-color: #FFFFFF;
+      border: 2px solid #FFD1DC;
+      border-radius: 14px;
+      padding: 6px 0;
+      text-align: center;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 10px rgba(255, 183, 197, 0.15);
+      transition: all 0.25s ease;
+    }
+
+    .tab-pill .pill-date {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--primary-dark);
+      line-height: 1.1;
+    }
+
+    .tab-pill .pill-day {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .tab-pill.active {
+      background-color: var(--primary-color);
+      border-color: var(--primary-color);
+      box-shadow: 0 4px 15px rgba(255, 183, 197, 0.5);
+      transform: translateY(-2px);
+    }
+
+    .tab-pill.active .pill-date { color: #FFFFFF; }
+    .tab-pill.active .pill-day { color: #FFF0F5; }
+
+    main {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 195px 12px 0 12px;
+    }
+
+    .section-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--primary-dark);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 14px;
+      padding-left: 4px;
+    }
+
+    .timeline-container {
+      position: relative;
+      padding-left: 68px;
+    }
+
+    .timeline-container::before {
+      content: '';
+      position: absolute;
+      left: 54px;
+      top: 18px;
+      bottom: 24px;
+      width: 3px;
+      background-color: var(--timeline-line);
+      border-radius: 3px;
+      z-index: 1;
+    }
+
+    .timeline-item {
+      position: relative;
+      margin-bottom: 24px;
+    }
+
+    .time-start {
+      position: absolute;
+      left: -68px;
+      top: 2px;
+      width: 50px;
+      text-align: right;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--time-text);
+    }
+
+    .time-end {
+      position: absolute;
+      left: -68px;
+      bottom: 2px;
+      width: 50px;
+      text-align: right;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--time-text);
+    }
+
+    .timeline-node {
+      position: absolute;
+      left: -14px;
+      top: 9px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background-color: #FFFFFF;
+      border: 3px solid var(--primary-color);
+      z-index: 2;
+      transform: translateX(-50%);
+      box-shadow: 0 0 8px rgba(255, 183, 197, 0.8);
+    }
+
+    .card {
+      background-color: var(--card-bg);
+      border-radius: 20px;
+      border: 1px solid var(--border-color);
+      box-shadow: var(--shadow-card);
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      transition: transform 0.2s ease;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .card-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-dark);
+      line-height: 1.35;
+      flex: 1;
+    }
+
+    .category-tag {
+      font-size: 12px;
+      font-weight: 700;
+      color: #5A5255;
+      padding: 4px 10px;
+      border-radius: 12px;
+      white-space: nowrap;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+    }
+
+    .tag-景點 { background-color: #FFD1DC; color: #8C525C; }
+    .tag-餐飲, .tag-美食 { background-color: #FFE5B4; color: #8C6D47; }
+    .tag-住宿 { background-color: #C1F0F6; color: #407A85; }
+    .tag-交通 { background-color: #E2D9F3; color: #5C4B7D; }
+    .tag-購物 { background-color: #D4F0F0; color: #3F7070; }
+    .tag-重要 { background-color: #FFF5BA; color: #857930; }
+
+    .card-desc {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .card-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      font-size: 13px;
+      color: var(--text-muted);
+      background-color: #FFF8FA;
+      padding: 10px 14px;
+      border-radius: 14px;
+      border: 1px dashed #FFD1DC;
+    }
+
+    .meta-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .meta-item strong {
+      color: var(--text-dark);
+    }
+
+    .map-btn {
+      background-color: #FFF0F3;
+      color: var(--primary-dark);
+      border: 1px solid #FFD1DC;
+      padding: 8px 14px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+
+    .map-btn:active {
+      background-color: #FFD1DC;
+    }
+
+    .card-image-wrapper {
+      width: 100%;
+      max-height: 220px;
+      border-radius: 14px;
+      overflow: hidden;
+      margin-top: 6px;
+      background-color: #FFF0F5;
+    }
+
+    .card-image {
+      width: 100%;
+      height: 100%;
+      max-height: 220px;
+      object-fit: cover;
+      display: block;
+    }
+
+    .is-traffic-img-wrapper {
+      max-height: none !important;
+      background-color: transparent !important;
+    }
+
+    .is-traffic-img {
+      max-height: none !important;
+      height: auto !important;
+      object-fit: contain !important;
+      border-radius: 14px;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-muted);
+    }
+
+    .empty-state i {
+      font-size: 40px;
+      color: #FFD1DC;
+      margin-bottom: 10px;
+    }
+
+    .spin {
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { 100% { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+  <div class="fixed-header-group">
+    <div class="header-content-wrapper">
+      <div class="header-card">
+        <div class="header-top">
+          <div class="header-subtitle">
+            <i class="fa-solid fa-sparkles"></i> 夢幻隨行手帳 TRIP MEMO
+          </div>
+          <button class="sync-btn" onclick="fetchCSVData(true)">
+            <i class="fa-solid fa-rotate" id="sync-icon"></i>
+            <span>同步資料</span>
+          </button>
+        </div>
+        <div class="header-title">
+          <i class="fa-solid fa-plane"></i> 行程規劃
+        </div>
+        <div class="header-pill">
+          <i class="fa-regular fa-calendar-days"></i> 精彩旅程
+        </div>
+      </div>
+
+      <div class="date-tabs-wrapper">
+        <div class="date-tabs" id="date-tabs">
+          <!-- 動態生成日期標籤 -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <main>
+    <div class="section-title">
+      <i class="fa-solid fa-route"></i> 行程時光軸
+    </div>
+    <div class="timeline-container" id="timeline-container">
+    </div>
+  </main>
+
+  <script>
+    if ('scrollRestoration' in history) {
+      history.scrollRestoration = 'manual';
+    }
+
+    const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTrCVDD_KzsJrMST5sAZARew0U6HSu08xYD45xVgRxmPISj7JsrEWJh_CAwPXOxOTFmrTiOz9NTqqih/pub?gid=1604718346&single=true&output=csv";
+
+    let currentDay = 1;
+    let itineraryData = {};
+    let dayDates = {}; // 儲存每一天對應的日期
+
+    window.onload = function() {
+      window.scrollTo(0, 0);
+      
+      const cached = localStorage.getItem('new_timeline_data_macaron_v2');
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          itineraryData = parsed.itineraryData;
+          dayDates = parsed.dayDates;
+          renderTabs();
+          renderDay(currentDay);
+        } catch(e) {}
+      }
+
+      fetchCSVData(false);
+    };
+
+    function fetchCSVData(isManual = false) {
+      const syncIcon = document.getElementById('sync-icon');
+      if (syncIcon) syncIcon.classList.add('spin');
+
+      fetch(CSV_URL + "&t=" + new Date().getTime())
+        .then(res => {
+          if (!res.ok) throw new Error("讀取失敗");
+          return res.text();
+        })
+        .then(csvText => {
+          parseCSVAndSave(csvText);
+          if (isManual) alert("🌸 行程與圖片同步更新成功！");
+        })
+        .catch(err => {
+          console.error(err);
+          if (isManual) alert("🥺 同步失敗，請確認網路連線。");
+        })
+        .finally(() => {
+          if (syncIcon) syncIcon.classList.remove('spin');
+        });
+    }
+
+    function parseCSVAndSave(csvText) {
+      const lines = csvText.split(/\r\n|\n/);
+      if (lines.length < 2) return;
+
+      const newItinerary = {};
+      const newDayDates = {};
+      let activeDay = 1;
+      let lastDate = "";
+
+      for (let i = 1; i < lines.length; i++) {
+        const row = parseCSVRow(lines[i]);
+        if (!row || row.length < 4) continue;
+
+        // 欄位0對應第一欄（日期），欄位1對應Day
+        let rawDate = row[0] ? row[0].trim() : '';
+        let dayNum = parseInt(row[1]) || parseInt(row[0]);
+
+        if (!dayNum || isNaN(dayNum)) continue;
+        activeDay = dayNum;
+
+        if (rawDate) {
+          lastDate = rawDate;
+        }
+
+        if (!newDayDates[activeDay] && lastDate) {
+          newDayDates[activeDay] = lastDate;
+        }
+
+        if (!newItinerary[activeDay]) {
+          newItinerary[activeDay] = [];
+        }
+
+        const timeStart = row[2] ? row[2].trim() : '';
+        const timeEnd = row[3] ? row[3].trim() : '';
+        const title = row[4] ? row[4].trim() : '';
+        if (!title) continue;
+
+        const category = row[5] ? row[5].trim() : '景點';
+        const desc = row[6] ? row[6].trim() : '';
+        const duration = row[7] ? row[7].trim() : '';
+        const cost = row[8] ? row[8].trim() : '';
+        const note = row[9] ? row[9].trim() : '';
+        const mapUrl = row[10] ? row[10].trim() : '';
+        const imageUrl = processImageUrl(row[11] ? row[11].trim() : '', title, category);
+
+        newItinerary[activeDay].push({
+          timeStart, timeEnd, title, category, desc, duration, cost, note, mapUrl, imageUrl
+        });
+      }
+
+      itineraryData = newItinerary;
+      dayDates = newDayDates;
+      
+      localStorage.setItem('new_timeline_data_macaron_v2', JSON.stringify({ itineraryData, dayDates }));
+      
+      renderTabs();
+      if (!itineraryData[currentDay]) {
+        currentDay = Object.keys(itineraryData)[0] || 1;
+      }
+      renderDay(currentDay);
+    }
+
+    function renderTabs() {
+      const tabsContainer = document.getElementById('date-tabs');
+      let html = '';
+      const days = Object.keys(itineraryData).map(Number).sort((a, b) => a - b);
+
+      days.forEach(day => {
+        let dateStr = dayDates[day] || `Day ${day}`;
+        let isActive = (day === currentDay) ? 'active' : '';
+        html += `
+          <div class="tab-pill ${isActive}" onclick="switchDay(${day})">
+            <span class="pill-date">${dateStr}</span>
+            <span class="pill-day">Day ${day}</span>
+          </div>
+        `;
+      });
+      tabsContainer.innerHTML = html;
+    }
+
+    function processImageUrl(url, title, category) {
+      if (url) {
+        if (url.includes('drive.google.com') && url.includes('/d/')) {
+          const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+          if (match && match[1]) {
+            return `https://drive.google.com/uc?export=view&id=${match[1]}`;
+          }
+        }
+        if (url.startsWith('http://') || url.startsWith('https://')) {
+          return url;
+        }
+      }
+      return '';
+    }
+
+    function parseCSVRow(text) {
+      let p = '', c = '', r = [];
+      let q = false;
+      for (let i = 0; i < text.length; i++) {
+        c = text[i];
+        if (c === '"') {
+          if (q && text[i+1] === '"') { p += '"'; i++; }
+          else { q = !q; }
+        } else if (c === ',' && !q) {
+          r.push(p);
+          p = '';
+        } else {
+          p += c;
+        }
+      }
+      r.push(p);
+      return r;
+    }
+
+    function switchDay(day) {
+      currentDay = day;
+      const pills = document.querySelectorAll('.tab-pill');
+      pills.forEach((pill) => {
+        pill.classList.remove('active');
+      });
+      renderTabs();
+      renderDay(day);
+      window.scrollTo(0, 0);
+    }
+
+    function renderDay(day) {
+      const container = document.getElementById('timeline-container');
+      container.innerHTML = '';
+
+      const list = itineraryData[day] || [];
+
+      if (list.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <i class="fa-regular fa-folder-open"></i>
+            <p>第 ${day} 天暫無行程資料</p>
+          </div>
+        `;
+        return;
+      }
+
+      list.forEach(item => {
+        const itemEl = document.createElement('div');
+        itemEl.className = 'timeline-item';
+
+        let metaHtml = '';
+        if (item.duration) metaHtml += `<div class="meta-item"><i class="fa-regular fa-clock"></i> 歷時: <strong>${item.duration}</strong></div>`;
+        if (item.cost) metaHtml += `<div class="meta-item"><i class="fa-solid fa-yen-sign"></i> 費用: <strong>${item.cost}</strong></div>`;
+        if (item.note) metaHtml += `<div class="meta-item" style="width:100%;"><i class="fa-regular fa-note-sticky"></i> 備註: ${item.note}</div>`;
+
+        const isTraffic = (item.category === '交通');
+        const imgWrapperClass = isTraffic ? 'card-image-wrapper is-traffic-img-wrapper' : 'card-image-wrapper';
+        const imgClass = isTraffic ? 'card-image is-traffic-img' : 'card-image';
+
+        let imgHtml = '';
+        if (item.imageUrl) {
+          imgHtml = `
+            <div class="${imgWrapperClass}">
+              <img src="${item.imageUrl}" class="${imgClass}" alt="${item.title}" referrerpolicy="no-referrer" crossorigin="anonymous" onerror="this.parentElement.style.display='none'">
+            </div>
+          `;
+        }
+
+        const mapSearchUrl = item.mapUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.title)}`;
+        const startHtml = item.timeStart ? `<div class="time-start">${item.timeStart}</div>` : '';
+        const endHtml = item.timeEnd ? `<div class="time-end">${item.timeEnd}</div>` : '';
+
+        itemEl.innerHTML = `
+          ${startHtml}
+          ${endHtml}
+          <div class="timeline-node"></div>
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">${item.title}</div>
+              <span class="category-tag tag-${item.category}">${item.category}</span>
+            </div>
+            ${item.desc ? `<div class="card-desc">${item.desc}</div>` : ''}
+            ${metaHtml ? `<div class="card-meta">${metaHtml}</div>` : ''}
+            <div>
+              <a href="${mapSearchUrl}" target="_blank" class="map-btn">
+                <i class="fa-solid fa-location-dot"></i> 地圖導航
+              </a>
+            </div>
+            ${imgHtml}
+          </div>
+        `;
+
+        container.appendChild(itemEl);
+      });
+    }
+  </script>
+</body>
+</html>
