@@ -185,6 +185,28 @@
       padding: 195px 12px 20px 12px;
     }
 
+    .shopping-top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .save-status-btn {
+      background: linear-gradient(135deg, #A8E6CF 0%, #355C7D 100%);
+      color: #FFFFFF;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 14px;
+      font-size: 13px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(53, 92, 125, 0.25);
+    }
+
     .section-title {
       font-size: 17px;
       font-weight: 700;
@@ -192,8 +214,6 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      margin-bottom: 14px;
-      padding-left: 4px;
     }
 
     .timeline-container {
@@ -350,7 +370,6 @@
       display: block;
     }
 
-    /* 購物清單專屬樣式 */
     .shopping-container {
       display: flex;
       flex-direction: column;
@@ -399,7 +418,6 @@
       display: flex;
     }
 
-    /* 商品卡片：加入淺粉背景色區別外層 */
     .product-card {
       background: #FFF9FB;
       border: 1px solid #FCE4EC;
@@ -431,16 +449,36 @@
       margin-left: 4px;
     }
 
-    .product-total-badge {
-      font-size: 12px;
+    .product-order-box {
+      font-size: 13px;
       font-weight: 700;
-      color: var(--primary-dark);
-      background: #FFFFFF;
-      border: 1px solid #FFD1DC;
-      padding: 3px 10px;
-      border-radius: 12px;
-      white-space: nowrap;
-      text-align: right;
+      color: #855300;
+      background: linear-gradient(135deg, #FFF5BA 0%, #FFE5B4 100%);
+      border: 1px solid #FFE0B2;
+      padding: 8px 12px;
+      border-radius: 10px;
+      margin-top: 4px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      align-self: flex-start;
+      box-shadow: 0 2px 6px rgba(255, 183, 0, 0.12);
+    }
+
+    .product-order-box-title {
+      font-size: 12px;
+      color: #8C525C;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-bottom: 2px;
+    }
+
+    .product-order-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      line-height: 1.3;
     }
 
     .product-row-style {
@@ -459,7 +497,8 @@
       color: var(--text-dark);
       display: flex;
       flex-wrap: wrap;
-      gap: 12px;
+      gap: 10px;
+      align-items: center;
     }
 
     .product-row-prices strong {
@@ -476,7 +515,6 @@
       margin-top: 2px;
     }
 
-    /* 子區塊：許願 / 下單 */
     .sub-box {
       margin-top: 6px;
       padding-top: 8px;
@@ -497,7 +535,6 @@
     .sub-title.wish { background-color: #FFF5BA; color: #7A6510; }
     .sub-title.order { background-color: #E2F0D9; color: #276A3C; }
 
-    /* 下單人可收合分組：加入淡粉奶油底色區別 */
     .buyer-group {
       background-color: #FFF5F7;
       border: 1px solid #F7D6E0;
@@ -550,7 +587,6 @@
       border-radius: 10px;
     }
 
-    /* 點擊整行區域 */
     .sub-row {
       display: flex;
       align-items: flex-start;
@@ -585,7 +621,6 @@
       margin-top: 2px;
     }
 
-    /* 底部導覽列 */
     .bottom-nav-wrapper {
       position: fixed;
       bottom: 0;
@@ -702,6 +737,9 @@
     const ITINERARY_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTrCVDD_KzsJrMST5sAZARew0U6HSu08xYD45xVgRxmPISj7JsrEWJh_CAwPXOxOTFmrTiOz9NTqqih/pub?gid=1604718346&single=true&output=csv";
     const SHOPPING_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTrCVDD_KzsJrMST5sAZARew0U6HSu08xYD45xVgRxmPISj7JsrEWJh_CAwPXOxOTFmrTiOz9NTqqih/pub?gid=1409318811&single=true&output=csv";
     const ORDERS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTrCVDD_KzsJrMST5sAZARew0U6HSu08xYD45xVgRxmPISj7JsrEWJh_CAwPXOxOTFmrTiOz9NTqqih/pub?gid=173335899&single=true&output=csv";
+    
+    // 已自動帶入您提供的 Apps Script Web App 網址
+    const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbx8nTfpX8ZkIrjtzUY5fWJQ9SEo6vtFF1_XREHNRycadYLh-Vy9LI95Yt-6end5UYtWlQ/exec";
 
     let currentMainTab = 'itinerary';
     let currentDay = 1;
@@ -710,6 +748,8 @@
     let wishData = [];
     let orderData = [];
     let checkedMap = {}; 
+    let expandedStores = {}; 
+    let expandedBuyers = {}; 
 
     window.onload = function() {
       window.scrollTo(0, 0);
@@ -718,7 +758,7 @@
     };
 
     function loadCache() {
-      const cached = localStorage.getItem('trip_app_cache_v27');
+      const cached = localStorage.getItem('trip_app_cache_v31');
       if (cached) {
         try {
           const parsed = JSON.parse(cached);
@@ -727,14 +767,16 @@
           wishData = parsed.wishData || [];
           orderData = parsed.orderData || [];
           checkedMap = parsed.checkedMap || {};
+          expandedStores = parsed.expandedStores || {};
+          expandedBuyers = parsed.expandedBuyers || {};
           renderView();
         } catch(e) {}
       }
     }
 
     function saveCache() {
-      localStorage.setItem('trip_app_cache_v27', JSON.stringify({
-        itineraryData, dayDates, wishData, orderData, checkedMap
+      localStorage.setItem('trip_app_cache_v31', JSON.stringify({
+        itineraryData, dayDates, wishData, orderData, checkedMap, expandedStores, expandedBuyers
       }));
     }
 
@@ -761,6 +803,35 @@
       })
       .finally(() => {
         if (syncIcon) syncIcon.classList.remove('spin');
+      });
+    }
+
+    function syncStatusToSheet() {
+      if (!GAS_WEB_APP_URL || GAS_WEB_APP_URL.includes("YOUR_GAS_WEB_APP_URL")) {
+        alert("請先將 Apps Script 部署發布的 Web App URL 設定至程式碼中！");
+        return;
+      }
+
+      const btnIcon = document.getElementById('upload-icon');
+      if (btnIcon) btnIcon.classList.add('spin');
+
+      fetch(GAS_WEB_APP_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ checkedMap: checkedMap })
+      })
+      .then(() => {
+        alert("✨ 採購狀態已發送更新至 Google Sheet Excel！");
+      })
+      .catch(err => {
+        console.error(err);
+        alert("🥺 更新失敗，請檢查網路連線或 Apps Script 設定。");
+      })
+      .finally(() => {
+        if (btnIcon) btnIcon.classList.remove('spin');
       });
     }
 
@@ -809,7 +880,6 @@
       dayDates = newDayDates;
     }
 
-    // 解析「代購清單（許願）」(跳過前 2 列標題)
     function parseShoppingWishCSV(csvText) {
       const lines = csvText.split(/\r\n|\n/);
       if (lines.length < 3) return;
@@ -819,28 +889,29 @@
         const row = parseCSVRow(lines[i]);
         if (!row || row.length < 3) continue;
         
-        const store = row[1] ? row[1].trim() : '';
-        const item = row[2] ? row[2].trim() : '';
+        const store = row[1] ? row[1].trim() : ''; 
+        const item = row[2] ? row[2].trim() : '';  
         if (!store || !item || store === '店家' || item === '商品') continue;
 
         list.push({ 
           store: store,
           item: item,
-          itemJp: row[3] ? row[3].trim() : '', 
-          style: row[4] ? row[4].trim() : '', 
-          qty: parseInt(row[5]) || 1, 
-          unTaxed: row[6] ? row[6].trim() : '', 
-          taxed: row[7] ? row[7].trim() : '', 
-          priceOffer: row[8] ? row[8].trim() : '', 
-          buyer: row[9] ? row[9].trim() : '', 
-          note: row[10] ? row[10].trim() : '', 
-          link: row[11] ? row[11].trim() : ''
+          itemJp: row[3] ? row[3].trim() : '',      
+          style: row[4] ? row[4].trim() : '',       
+          qty: parseInt(row[5]) || 1,               
+          unTaxed: row[6] ? row[6].trim() : '',     
+          taxed: row[7] ? row[7].trim() : '',       
+          priceRef: row[8] ? row[8].trim() : '',    
+          priceOffer: row[9] ? row[9].trim() : '',  
+          buyer: row[10] ? row[10].trim() : '',     
+          note: row[11] ? row[11].trim() : '',      
+          link: row[12] ? row[12].trim() : '',      
+          image: row[13] ? row[13].trim() : ''      
         });
       }
       wishData = list;
     }
 
-    // 解析「下單紀錄」
     function parseOrdersCSV(csvText) {
       const lines = csvText.split(/\r\n|\n/);
       if (lines.length < 3) return;
@@ -850,24 +921,31 @@
         const row = parseCSVRow(lines[i]);
         if (!row || row.length < 4) continue;
         
-        const buyer = row[1] ? row[1].trim() : '';
-        const store = row[2] ? row[2].trim() : '';
-        const item = row[3] ? row[3].trim() : '';
+        const status = row[0] ? row[0].trim() : '';
+        const buyer = row[1] ? row[1].trim() : '';  
+        const store = row[2] ? row[2].trim() : '';  
+        const item = row[3] ? row[3].trim() : '';   
         if (!store || !item || store === '店家' || item === '商品') continue;
 
-        const style = row[4] ? row[4].trim() : '';
-        const qty = parseInt(row[5]) || 1;
+        const style = row[4] ? row[4].trim() : '';  
+        const qty = parseInt(row[5]) || 1;          
+
+        const id = `ord_${i}_${store}_${item}_${style}_${buyer}`;
+
+        if (status === "已購買" && checkedMap[id] === undefined) {
+          checkedMap[id] = true;
+        }
 
         list.push({
-          id: `ord_${i}_${store}_${item}_${style}_${buyer}`,
+          id: id,
           buyer: buyer,
           store: store,
           item: item,
           style: style,
           qty: qty,
-          price: row[6] ? row[6].trim() : '',
-          total: row[7] ? row[7].trim() : '',
-          note: row[8] ? row[8].trim() : ''
+          price: row[6] ? row[6].trim() : '',       
+          total: row[7] ? row[7].trim() : '',       
+          note: row[8] ? row[8].trim() : ''         
         });
       }
       orderData = list;
@@ -919,6 +997,22 @@
 
     function toggleCheck(id) {
       checkedMap[id] = !checkedMap[id];
+      saveCache();
+      renderShoppingList();
+    }
+
+    function toggleStoreOpen(storeName) {
+      expandedStores[storeName] = !expandedStores[storeName];
+      saveCache();
+      renderShoppingList();
+    }
+
+    function toggleBuyerOpen(buyerKey) {
+      if (expandedBuyers[buyerKey] === undefined) {
+        expandedBuyers[buyerKey] = false;
+      } else {
+        expandedBuyers[buyerKey] = !expandedBuyers[buyerKey];
+      }
       saveCache();
       renderShoppingList();
     }
@@ -1004,7 +1098,15 @@
       const container = document.getElementById('main-content');
       let html = `<div class="shopping-container">`;
 
-      html += `<div class="section-title" style="margin-bottom: 14px;"><i class="fa-solid fa-basket-shopping"></i> 購物與採購清單</div>`;
+      html += `
+        <div class="shopping-top-bar">
+          <div class="section-title"><i class="fa-solid fa-basket-shopping"></i> 購物與採購清單</div>
+          <button class="save-status-btn" onclick="syncStatusToSheet()">
+            <i class="fa-solid fa-cloud-arrow-up" id="upload-icon"></i>
+            <span>更新採購狀態</span>
+          </button>
+        </div>
+      `;
       
       const allStores = Array.from(new Set([
         ...wishData.map(w => w.store),
@@ -1027,10 +1129,11 @@
         ]));
 
         const completedCount = storeOrders.filter(o => checkedMap[o.id]).length;
+        const isStoreOpen = !!expandedStores[storeName];
 
         html += `
-          <div class="store-group-card open">
-            <div class="store-header" onclick="this.parentElement.classList.toggle('open')">
+          <div class="store-group-card ${isStoreOpen ? 'open' : ''}">
+            <div class="store-header" onclick="toggleStoreOpen('${storeName}')">
               <span><i class="fa-solid fa-store"></i> ${storeName}</span>
               <div style="display: flex; align-items: center; gap: 8px;">
                 ${storeOrders.length > 0 ? `<span style="font-size: 12px; font-weight: 700; background: rgba(255,255,255,0.85); color: #276A3C; padding: 2px 8px; border-radius: 10px;">採購進度: ${completedCount}/${storeOrders.length}</span>` : ''}
@@ -1044,10 +1147,8 @@
           const itemWishes = storeWishes.filter(w => w.item === prodName);
           const itemOrders = storeOrders.filter(o => o.item === prodName);
 
-          // 1. 隱藏無「許願人」的許願項目
           const validWishes = itemWishes.filter(w => w.buyer && w.buyer.trim() !== '');
 
-          // 2. 下單總數（依款式統計各自總數量）
           const styleQtyMap = {};
           let totalQtyNoStyle = 0;
           let hasStyleInOrders = false;
@@ -1061,53 +1162,54 @@
             }
           });
 
-          let orderBadgeText = '';
+          let orderStyleItems = [];
           if (hasStyleInOrders) {
-            const parts = Object.keys(styleQtyMap).map(st => `${st}:${styleQtyMap[st]}`);
-            if (totalQtyNoStyle > 0) parts.push(`無款式:${totalQtyNoStyle}`);
-            orderBadgeText = `下單總數: ${parts.join(', ')}`;
+            Object.keys(styleQtyMap).forEach(st => {
+              orderStyleItems.push(`${st}: ${styleQtyMap[st]}`);
+            });
+            if (totalQtyNoStyle > 0) orderStyleItems.push(`無款式: ${totalQtyNoStyle}`);
           } else {
-            orderBadgeText = `下單總數: ${totalQtyNoStyle}`;
+            orderStyleItems.push(`總計: ${totalQtyNoStyle}`);
           }
 
-          // 3. 通用屬性參考
           const refWish = itemWishes[0] || {};
           const itemJp = refWish.itemJp || '';
           
-          // 4. 上方款式列：僅顯示【代購清單（許願表）】的款式欄位
           const wishStyles = Array.from(new Set(
             validWishes.map(w => w.style).filter(Boolean)
           )).join('、');
 
           const unTaxed = refWish.unTaxed || '';
           const taxed = refWish.taxed || '';
+          const priceRef = refWish.priceRef || '';
           const priceOffer = refWish.priceOffer || '';
           const globalNote = refWish.note || '';
           const link = refWish.link || '';
 
-          // 價格組裝
           let priceParts = [];
           if (unTaxed) priceParts.push(`未稅: <strong>${unTaxed}</strong>`);
           if (taxed) priceParts.push(`含稅: <strong>${taxed}</strong>`);
+          if (priceRef) priceParts.push(`<span style="color:var(--text-muted); font-weight:normal;">(約台幣$${priceRef.replace(/[^0-9.]/g, '') || priceRef})</span>`);
           if (priceOffer) priceParts.push(`開價: <strong>${priceOffer}</strong>`);
 
           html += `
             <div class="product-card">
-              <!-- (第一行) 商品名稱與日文直接放置在一起，(靠右)下單總數 -->
               <div class="product-row-1">
                 <div class="product-titles">
                   <h4>${prodName}${itemJp ? `<span class="jp-title-inline">(${itemJp})</span>` : ''}</h4>
                 </div>
-                <div class="product-total-badge">${orderBadgeText}</div>
               </div>
 
-              <!-- (換行) 款式: 僅顯示有許願人的款式 -->
               ${wishStyles ? `<div class="product-row-style"><i class="fa-solid fa-tag"></i> 款式: ${wishStyles}</div>` : ''}
+              ${priceParts.length > 0 ? `<div class="product-row-prices">${priceParts.join(' ')}</div>` : ''}
 
-              <!-- (換行) 未稅+價格、含稅+價格、開價+價格 -->
-              ${priceParts.length > 0 ? `<div class="product-row-prices">${priceParts.map(p => `<span>${p}</span>`).join('')}</div>` : ''}
+              ${orderStyleItems.length > 0 ? `
+                <div class="product-order-box">
+                  <div class="product-order-box-title"><i class="fa-solid fa-boxes-stacked"></i> 下單總數</div>
+                  ${orderStyleItems.map(itemStr => `<div class="product-order-item">• ${itemStr}</div>`).join('')}
+                </div>
+              ` : ''}
 
-              <!-- (換行) 備註及連結 -->
               ${(globalNote || link) ? `
                 <div class="product-row-note">
                   ${globalNote ? `<span>備註: ${globalNote}</span> ` : ''}
@@ -1115,21 +1217,31 @@
                 </div>
               ` : ''}
 
-              <!-- 許願區塊 (有有效許願人時才顯示) -->
               ${validWishes.length > 0 ? `
                 <div class="sub-box">
                   <span class="sub-title wish"><i class="fa-solid fa-wand-magic-sparkles"></i> 許願區塊</span>
-                  ${validWishes.map(w => `
-                    <div class="sub-row" style="cursor: default;">
-                      <div class="sub-content">
-                        <span class="sub-text">許願人: <strong>${w.buyer}</strong>${w.style ? ` | 款式: <strong>${w.style}</strong>` : ''} | 數量: <strong>${w.qty}</strong></span>
-                      </div>
-                    </div>
-                  `).join('')}
+                  ${(() => {
+                    const wishBuyerMap = {};
+                    validWishes.forEach(w => {
+                      const bName = w.buyer;
+                      if (!wishBuyerMap[bName]) wishBuyerMap[bName] = [];
+                      if (w.style) wishBuyerMap[bName].push(w.style);
+                    });
+
+                    return Object.keys(wishBuyerMap).map(bName => {
+                      const stylesJoined = Array.from(new Set(wishBuyerMap[bName])).join('、');
+                      return `
+                        <div class="sub-row" style="cursor: default;">
+                          <div class="sub-content">
+                            <span class="sub-text">許願人: <strong>${bName}</strong>${stylesJoined ? ` | 款式: <strong>${stylesJoined}</strong>` : ''}</span>
+                          </div>
+                        </div>
+                      `;
+                    }).join('');
+                  })()}
                 </div>
               ` : ''}
 
-              <!-- 下單區塊 (個人採購進度統計 + 可收合 + 完成自動收合 + 淡粉奶油底色) -->
               ${itemOrders.length > 0 ? `
                 <div class="sub-box">
                   <span class="sub-title order"><i class="fa-solid fa-cart-shopping"></i> 下單區塊</span>
@@ -1144,14 +1256,13 @@
                     return Object.keys(buyerMap).map(bName => {
                       const orders = buyerMap[bName];
                       const completedBuyerCount = orders.filter(o => checkedMap[o.id]).length;
-                      const isAllDone = completedBuyerCount === orders.length;
-
-                      // 若個人採購全部完成，預設不加 open 類別 (自動收合)
-                      const openClass = isAllDone ? '' : 'open';
+                      
+                      const buyerKey = `${storeName}_${prodName}_${bName}`;
+                      const isBuyerOpen = (expandedBuyers[buyerKey] === undefined) ? true : expandedBuyers[buyerKey];
 
                       return `
-                        <div class="buyer-group ${openClass}">
-                          <div class="buyer-group-title" onclick="this.parentElement.classList.toggle('open')">
+                        <div class="buyer-group ${isBuyerOpen ? 'open' : ''}">
+                          <div class="buyer-group-title" onclick="toggleBuyerOpen('${buyerKey}')">
                             <span><i class="fa-regular fa-user"></i> 下單人: ${bName}</span>
                             <div style="display: flex; align-items: center; gap: 8px;">
                               <span class="buyer-progress-badge">採購進度: ${completedBuyerCount}/${orders.length}</span>
@@ -1166,8 +1277,7 @@
                                 <div class="sub-row ${isDone ? 'completed' : ''}" onclick="toggleCheck('${o.id}')">
                                   <input type="checkbox" class="custom-checkbox" ${isDone ? 'checked' : ''} onclick="event.stopPropagation(); toggleCheck('${o.id}');">
                                   <div class="sub-content">
-                                    <span class="sub-text"><strong>${displayText}</strong></span>
-                                    ${o.note ? `<div class="sub-note">備註: ${o.note}</div>` : ''}
+                                    <span class="sub-text"><strong>${displayText}</strong></span>${o.note ? `<div class="sub-note">備註: ${o.note}</div>` : ''}
                                   </div>
                                 </div>
                               `;
