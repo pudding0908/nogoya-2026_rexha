@@ -238,10 +238,9 @@
       margin-bottom: 24px;
     }
 
-    .time-start {
+    .time-start, .time-end {
       position: absolute;
       left: -68px;
-      top: 2px;
       width: 50px;
       text-align: right;
       font-size: 14px;
@@ -249,16 +248,8 @@
       color: var(--time-text);
     }
 
-    .time-end {
-      position: absolute;
-      left: -68px;
-      bottom: 2px;
-      width: 50px;
-      text-align: right;
-      font-size: 14px;
-      font-weight: 700;
-      color: var(--time-text);
-    }
+    .time-start { top: 2px; }
+    .time-end { bottom: 2px; }
 
     .timeline-node {
       position: absolute;
@@ -568,9 +559,9 @@
 
     .buyer-items-container {
       display: none;
-      padding: 6px 12px;
+      padding: 8px 12px;
       flex-direction: column;
-      gap: 4px;
+      gap: 8px;
       border-top: 1px dashed #F7C8D8;
     }
 
@@ -589,7 +580,7 @@
 
     .sub-row {
       display: flex;
-      align-items: flex-start;
+      align-items: center;
       gap: 8px;
       font-size: 13px;
       padding: 4px 0;
@@ -605,7 +596,6 @@
     .custom-checkbox {
       width: 18px;
       height: 18px;
-      margin-top: 2px;
       cursor: pointer;
       accent-color: var(--primary-dark);
       flex-shrink: 0;
@@ -613,12 +603,27 @@
 
     .sub-content {
       flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
     }
 
-    .sub-note {
+    /* 新增備註輸入框樣式 */
+    .note-input {
+      border: 1px solid #FFC0CB;
+      border-radius: 8px;
+      padding: 4px 8px;
       font-size: 12px;
-      color: var(--text-muted);
-      margin-top: 2px;
+      color: var(--text-dark);
+      outline: none;
+      width: 130px;
+      background-color: #FFFFFF;
+      transition: border-color 0.2s ease;
+    }
+
+    .note-input:focus {
+      border-color: var(--primary-dark);
+      box-shadow: 0 0 4px rgba(232, 152, 166, 0.4);
     }
 
     .bottom-nav-wrapper {
@@ -738,7 +743,6 @@
     const SHOPPING_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTrCVDD_KzsJrMST5sAZARew0U6HSu08xYD45xVgRxmPISj7JsrEWJh_CAwPXOxOTFmrTiOz9NTqqih/pub?gid=1409318811&single=true&output=csv";
     const ORDERS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTrCVDD_KzsJrMST5sAZARew0U6HSu08xYD45xVgRxmPISj7JsrEWJh_CAwPXOxOTFmrTiOz9NTqqih/pub?gid=173335899&single=true&output=csv";
     
-    // 已自動帶入您提供的 Apps Script Web App 網址
     const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbx8nTfpX8ZkIrjtzUY5fWJQ9SEo6vtFF1_XREHNRycadYLh-Vy9LI95Yt-6end5UYtWlQ/exec";
 
     let currentMainTab = 'itinerary';
@@ -748,6 +752,7 @@
     let wishData = [];
     let orderData = [];
     let checkedMap = {}; 
+    let noteMap = {}; // 存放對應項目的備註內容
     let expandedStores = {}; 
     let expandedBuyers = {}; 
 
@@ -758,7 +763,7 @@
     };
 
     function loadCache() {
-      const cached = localStorage.getItem('trip_app_cache_v31');
+      const cached = localStorage.getItem('trip_app_cache_v32');
       if (cached) {
         try {
           const parsed = JSON.parse(cached);
@@ -767,6 +772,7 @@
           wishData = parsed.wishData || [];
           orderData = parsed.orderData || [];
           checkedMap = parsed.checkedMap || {};
+          noteMap = parsed.noteMap || {};
           expandedStores = parsed.expandedStores || {};
           expandedBuyers = parsed.expandedBuyers || {};
           renderView();
@@ -775,8 +781,8 @@
     }
 
     function saveCache() {
-      localStorage.setItem('trip_app_cache_v31', JSON.stringify({
-        itineraryData, dayDates, wishData, orderData, checkedMap, expandedStores, expandedBuyers
+      localStorage.setItem('trip_app_cache_v32', JSON.stringify({
+        itineraryData, dayDates, wishData, orderData, checkedMap, noteMap, expandedStores, expandedBuyers
       }));
     }
 
@@ -807,8 +813,8 @@
     }
 
     function syncStatusToSheet() {
-      if (!GAS_WEB_APP_URL || GAS_WEB_APP_URL.includes("YOUR_GAS_WEB_APP_URL")) {
-        alert("請先將 Apps Script 部署發布的 Web App URL 設定至程式碼中！");
+      if (!GAS_WEB_APP_URL) {
+        alert("請設定 Apps Script Web App 網址！");
         return;
       }
 
@@ -818,17 +824,18 @@
       fetch(GAS_WEB_APP_URL, {
         method: 'POST',
         mode: 'no-cors',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ checkedMap: checkedMap })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          checkedMap: checkedMap,
+          noteMap: noteMap 
+        })
       })
       .then(() => {
-        alert("✨ 採購狀態已發送更新至 Google Sheet Excel！");
+        alert("✨ 採購狀態與備註已發送更新至 Google Sheet！");
       })
       .catch(err => {
         console.error(err);
-        alert("🥺 更新失敗，請檢查網路連線或 Apps Script 設定。");
+        alert("🥺 更新失敗，請檢查網路連線。");
       })
       .finally(() => {
         if (btnIcon) btnIcon.classList.remove('spin');
@@ -929,11 +936,17 @@
 
         const style = row[4] ? row[4].trim() : '';  
         const qty = parseInt(row[5]) || 1;          
+        const csvNote = row[8] ? row[8].trim() : ''; // I欄原始備註
 
         const id = `ord_${i}_${store}_${item}_${style}_${buyer}`;
 
-        if (status === "已購買" && checkedMap[id] === undefined) {
-          checkedMap[id] = true;
+        if (status === "已購買" || status.toLowerCase() === "true") {
+          if (checkedMap[id] === undefined) checkedMap[id] = true;
+        }
+
+        // 當本地快取無值時載入試算表的備註
+        if (noteMap[id] === undefined) {
+          noteMap[id] = csvNote;
         }
 
         list.push({
@@ -945,7 +958,7 @@
           qty: qty,
           price: row[6] ? row[6].trim() : '',       
           total: row[7] ? row[7].trim() : '',       
-          note: row[8] ? row[8].trim() : ''         
+          note: csvNote         
         });
       }
       orderData = list;
@@ -999,6 +1012,11 @@
       checkedMap[id] = !checkedMap[id];
       saveCache();
       renderShoppingList();
+    }
+
+    function updateNote(id, value) {
+      noteMap[id] = value;
+      saveCache();
     }
 
     function toggleStoreOpen(storeName) {
@@ -1272,13 +1290,21 @@
                           <div class="buyer-items-container">
                             ${orders.map(o => {
                               const isDone = !!checkedMap[o.id];
+                              const currentNoteVal = noteMap[o.id] !== undefined ? noteMap[o.id] : (o.note || '');
                               let displayText = o.style ? `${o.style}+${o.qty}` : `數量: ${o.qty}`;
+                              
                               return `
                                 <div class="sub-row ${isDone ? 'completed' : ''}" onclick="toggleCheck('${o.id}')">
                                   <input type="checkbox" class="custom-checkbox" ${isDone ? 'checked' : ''} onclick="event.stopPropagation(); toggleCheck('${o.id}');">
                                   <div class="sub-content">
-                                    <span class="sub-text"><strong>${displayText}</strong></span>${o.note ? `<div class="sub-note">備註: ${o.note}</div>` : ''}
+                                    <span class="sub-text"><strong>${displayText}</strong></span>
                                   </div>
+                                  <input type="text" 
+                                         class="note-input" 
+                                         placeholder="輸入備註..." 
+                                         value="${currentNoteVal.replace(/"/g, '&quot;')}" 
+                                         onclick="event.stopPropagation();" 
+                                         oninput="updateNote('${o.id}', this.value)" />
                                 </div>
                               `;
                             }).join('')}
