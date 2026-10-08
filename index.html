@@ -523,7 +523,6 @@
       width: fit-content;
     }
 
-    .sub-title.wish { background-color: #FFF5BA; color: #7A6510; }
     .sub-title.order { background-color: #E2F0D9; color: #276A3C; }
 
     .buyer-group {
@@ -608,7 +607,6 @@
       gap: 2px;
     }
 
-    /* 新增備註輸入框樣式 */
     .note-input {
       border: 1px solid #FFC0CB;
       border-radius: 8px;
@@ -752,13 +750,15 @@
     let wishData = [];
     let orderData = [];
     let checkedMap = {}; 
-    let noteMap = {}; // 存放對應項目的備註內容
+    let noteMap = {}; 
     let expandedStores = {}; 
     let expandedBuyers = {}; 
 
     window.onload = function() {
       window.scrollTo(0, 0);
       loadCache();
+      // 初始化時確保店家清單重置為合上
+      expandedStores = {};
       fetchAllData(false);
     };
 
@@ -773,7 +773,6 @@
           orderData = parsed.orderData || [];
           checkedMap = parsed.checkedMap || {};
           noteMap = parsed.noteMap || {};
-          expandedStores = parsed.expandedStores || {};
           expandedBuyers = parsed.expandedBuyers || {};
           renderView();
         } catch(e) {}
@@ -782,7 +781,7 @@
 
     function saveCache() {
       localStorage.setItem('trip_app_cache_v32', JSON.stringify({
-        itineraryData, dayDates, wishData, orderData, checkedMap, noteMap, expandedStores, expandedBuyers
+        itineraryData, dayDates, wishData, orderData, checkedMap, noteMap, expandedBuyers
       }));
     }
 
@@ -905,15 +904,14 @@
           item: item,
           itemJp: row[3] ? row[3].trim() : '',      
           style: row[4] ? row[4].trim() : '',       
-          qty: parseInt(row[5]) || 1,               
+          qty: row[5] !== "" ? parseInt(row[5]) : 0,               
           unTaxed: row[6] ? row[6].trim() : '',     
           taxed: row[7] ? row[7].trim() : '',       
           priceRef: row[8] ? row[8].trim() : '',    
           priceOffer: row[9] ? row[9].trim() : '',  
-          buyer: row[10] ? row[10].trim() : '',     
-          note: row[11] ? row[11].trim() : '',      
-          link: row[12] ? row[12].trim() : '',      
-          image: row[13] ? row[13].trim() : ''      
+          note: row[10] ? row[10].trim() : '',      
+          link: row[11] ? row[11].trim() : '',      
+          image: row[12] ? row[12].trim() : ''      
         });
       }
       wishData = list;
@@ -936,7 +934,7 @@
 
         const style = row[4] ? row[4].trim() : '';  
         const qty = parseInt(row[5]) || 1;          
-        const csvNote = row[9] ? row[9].trim() : ''; // J欄原始備註
+        const csvNote = row[9] ? row[9].trim() : '';
 
         const id = `ord_${i}_${store}_${item}_${style}_${buyer}`;
 
@@ -944,7 +942,6 @@
           if (checkedMap[id] === undefined) checkedMap[id] = true;
         }
 
-        // 當本地快取無值時載入試算表的備註
         if (noteMap[id] === undefined) {
           noteMap[id] = csvNote;
         }
@@ -994,6 +991,8 @@
         dateTabsWrapper.style.display = 'block';
         mainContent.style.paddingTop = '195px';
       } else {
+        // 切換進入購物頁面時，重置所有店家的展開狀態為合上
+        expandedStores = {};
         dateTabsWrapper.style.display = 'none';
         mainContent.style.paddingTop = '145px';
       }
@@ -1021,7 +1020,6 @@
 
     function toggleStoreOpen(storeName) {
       expandedStores[storeName] = !expandedStores[storeName];
-      saveCache();
       renderShoppingList();
     }
 
@@ -1147,7 +1145,9 @@
         ]));
 
         const completedCount = storeOrders.filter(o => checkedMap[o.id]).length;
-        const isStoreOpen = !!expandedStores[storeName];
+        
+        // 預設皆為合上狀態 (只有使用者主動點開時才為 true)
+        const isStoreOpen = expandedStores[storeName] === true;
 
         html += `
           <div class="store-group-card ${isStoreOpen ? 'open' : ''}">
@@ -1164,8 +1164,6 @@
         productNames.forEach(prodName => {
           const itemWishes = storeWishes.filter(w => w.item === prodName);
           const itemOrders = storeOrders.filter(o => o.item === prodName);
-
-          const validWishes = itemWishes.filter(w => w.buyer && w.buyer.trim() !== '');
 
           const styleQtyMap = {};
           let totalQtyNoStyle = 0;
@@ -1186,7 +1184,7 @@
               orderStyleItems.push(`${st}: ${styleQtyMap[st]}`);
             });
             if (totalQtyNoStyle > 0) orderStyleItems.push(`無款式: ${totalQtyNoStyle}`);
-          } else {
+          } else if (totalQtyNoStyle > 0) {
             orderStyleItems.push(`總計: ${totalQtyNoStyle}`);
           }
 
@@ -1194,7 +1192,7 @@
           const itemJp = refWish.itemJp || '';
           
           const wishStyles = Array.from(new Set(
-            validWishes.map(w => w.style).filter(Boolean)
+            itemWishes.map(w => w.style).filter(Boolean)
           )).join('、');
 
           const unTaxed = refWish.unTaxed || '';
@@ -1232,31 +1230,6 @@
                 <div class="product-row-note">
                   ${globalNote ? `<span>備註: ${globalNote}</span> ` : ''}
                   ${link ? `<a href="${link}" target="_blank" style="color: #3498db; text-decoration: none;"><i class="fa-solid fa-link"></i> 連結</a>` : ''}
-                </div>
-              ` : ''}
-
-              ${validWishes.length > 0 ? `
-                <div class="sub-box">
-                  <span class="sub-title wish"><i class="fa-solid fa-wand-magic-sparkles"></i> 許願區塊</span>
-                  ${(() => {
-                    const wishBuyerMap = {};
-                    validWishes.forEach(w => {
-                      const bName = w.buyer;
-                      if (!wishBuyerMap[bName]) wishBuyerMap[bName] = [];
-                      if (w.style) wishBuyerMap[bName].push(w.style);
-                    });
-
-                    return Object.keys(wishBuyerMap).map(bName => {
-                      const stylesJoined = Array.from(new Set(wishBuyerMap[bName])).join('、');
-                      return `
-                        <div class="sub-row" style="cursor: default;">
-                          <div class="sub-content">
-                            <span class="sub-text">許願人: <strong>${bName}</strong>${stylesJoined ? ` | 款式: <strong>${stylesJoined}</strong>` : ''}</span>
-                          </div>
-                        </div>
-                      `;
-                    }).join('');
-                  })()}
                 </div>
               ` : ''}
 
