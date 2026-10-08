@@ -1165,7 +1165,7 @@
           const itemWishes = storeWishes.filter(w => w.item === prodName);
           const itemOrders = storeOrders.filter(o => o.item === prodName);
 
-          const validWishes = itemWishes.filter(w => w.buyer && w.buyer.trim() !== '');
+          const validWishes = itemWishes; //.filter(w => w.buyer && w.buyer.trim() !== '')
 
           const styleQtyMap = {};
           let totalQtyNoStyle = 0;
