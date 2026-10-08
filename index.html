@@ -757,7 +757,6 @@
     window.onload = function() {
       window.scrollTo(0, 0);
       loadCache();
-      // 初始化時確保店家清單重置為合上
       expandedStores = {};
       fetchAllData(false);
     };
@@ -917,6 +916,8 @@
       wishData = list;
     }
 
+    // ⭐️ 此處已對應新表格欄位順序（B欄為來源，欄位全部往後順延一格）：
+    // A:已購買(0) | B:來源(1,不顯示) | C:下單人(2) | D:店家(3) | E:商品(4) | F:款式(5) | G:下單數量(6) | H:實買數量(7) | I:單價(8) | J:總價(9) | K:備註(10)
     function parseOrdersCSV(csvText) {
       const lines = csvText.split(/\r\n|\n/);
       if (lines.length < 3) return;
@@ -924,17 +925,18 @@
       
       for (let i = 2; i < lines.length; i++) {
         const row = parseCSVRow(lines[i]);
-        if (!row || row.length < 4) continue;
+        if (!row || row.length < 5) continue;
         
-        const status = row[0] ? row[0].trim() : '';
-        const buyer = row[1] ? row[1].trim() : '';  
-        const store = row[2] ? row[2].trim() : '';  
-        const item = row[3] ? row[3].trim() : '';   
+        const status = row[0] ? row[0].trim() : '';  // A欄: 已購買
+        // row[1] 為「來源」，不讀取也不顯示
+        const buyer = row[2] ? row[2].trim() : '';   // C欄: 下單人
+        const store = row[3] ? row[3].trim() : '';   // D欄: 店家
+        const item = row[4] ? row[4].trim() : '';    // E欄: 商品
         if (!store || !item || store === '店家' || item === '商品') continue;
 
-        const style = row[4] ? row[4].trim() : '';  
-        const qty = parseInt(row[5]) || 1;          
-        const csvNote = row[9] ? row[9].trim() : '';
+        const style = row[5] ? row[5].trim() : '';   // F欄: 款式
+        const qty = parseInt(row[6]) || 1;           // G欄: 下單數量
+        const csvNote = row[10] ? row[10].trim() : ''; // K欄: 備註
 
         const id = `ord_${i}_${store}_${item}_${style}_${buyer}`;
 
@@ -953,8 +955,8 @@
           item: item,
           style: style,
           qty: qty,
-          price: row[6] ? row[6].trim() : '',       
-          total: row[7] ? row[7].trim() : '',       
+          price: row[8] ? row[8].trim() : '',        // I欄: 單價
+          total: row[9] ? row[9].trim() : '',        // J欄: 總價
           note: csvNote         
         });
       }
@@ -991,7 +993,6 @@
         dateTabsWrapper.style.display = 'block';
         mainContent.style.paddingTop = '195px';
       } else {
-        // 切換進入購物頁面時，重置所有店家的展開狀態為合上
         expandedStores = {};
         dateTabsWrapper.style.display = 'none';
         mainContent.style.paddingTop = '145px';
@@ -1145,8 +1146,6 @@
         ]));
 
         const completedCount = storeOrders.filter(o => checkedMap[o.id]).length;
-        
-        // 預設皆為合上狀態 (只有使用者主動點開時才為 true)
         const isStoreOpen = expandedStores[storeName] === true;
 
         html += `
