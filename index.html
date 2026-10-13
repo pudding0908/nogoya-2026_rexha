@@ -840,17 +840,43 @@
       });
     }
 
+    // 通用 CSV 解析函式（支援 Enter 換行與雙引號）
+    function parseCSV(text) {
+      const result = [[]];
+      let inQuotes = false;
+      for (let i = 0; i < text.length; i++) {
+        let cur = text[i], next = text[i + 1];
+        if (cur === '"') {
+          if (inQuotes && next === '"') { 
+            result[result.length - 1][result[result.length - 1].length - 1] += '"'; 
+            i++; 
+          } else { 
+            inQuotes = !inQuotes; 
+          }
+        } else if (cur === ',' && !inQuotes) {
+          result[result.length - 1].push('');
+        } else if ((cur === '\r' || cur === '\n') && !inQuotes) {
+          if (cur === '\r' && next === '\n') { i++; }
+          result.push(['']);
+        } else {
+          if (result[result.length - 1].length === 0) result[result.length - 1].push('');
+          result[result.length - 1][result[result.length - 1].length - 1] += cur;
+        }
+      }
+      return result;
+    }
+
     function parseItineraryCSV(csvText) {
-      const lines = csvText.split(/\r\n|\n/);
-      if (lines.length < 2) return;
+      const rows = parseCSV(csvText);
+      if (rows.length < 2) return;
 
       const newItinerary = {};
       const newDayDates = {};
       let activeDay = 1;
       let lastDate = "";
 
-      for (let i = 1; i < lines.length; i++) {
-        const row = parseCSVRow(lines[i]);
+      for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
         if (!row || row.length < 4) continue;
 
         let rawDate = row[0] ? row[0].trim() : '';
@@ -886,61 +912,134 @@
     }
 
     function parseShoppingWishCSV(csvText) {
-      const lines = csvText.split(/\r\n|\n/);
-      if (lines.length < 3) return;
+      const rows = parseCSV(csvText);
+      if (rows.length < 2) return;
+      
+      let headerRowIndex = -1;
+      let headers = [];
+      
+      for (let i = 0; i < Math.min(rows.length, 3); i++) {
+        const row = rows[i];
+        if (row && (row.includes('店家') || row.includes('商品'))) {
+          headerRowIndex = i;
+          headers = row.map(h => h ? h.trim() : '');
+          break;
+        }
+      }
+
+      if (headerRowIndex === -1) {
+        headerRowIndex = 1;
+        headers = rows[1] ? rows[1].map(h => h ? h.trim() : '') : [];
+      }
+
+      const getColIdx = (names) => {
+        for (let name of names) {
+          let idx = headers.indexOf(name);
+          if (idx !== -1) return idx;
+        }
+        return -1;
+      };
+
+      const idxStore = getColIdx(['店家']);
+      const idxItem = getColIdx(['商品']);
+      const idxItemJp = getColIdx(['商品日文']);
+      const idxStyle = getColIdx(['款式']);
+      const idxQty = getColIdx(['數量']);
+      const idxUnTaxed = getColIdx(['未稅/個', '未稅']);
+      const idxTaxed = getColIdx(['含稅/個', '含稅']);
+      const idxPriceRef = getColIdx(['參考台幣/個', '參考台幣']);
+      const idxPriceOffer = getColIdx(['開價/個', '開價']);
+      const idxNote = getColIdx(['備註']);
+      const idxLink = getColIdx(['連結']);
+      const idxImage = getColIdx(['圖片', '相片']);
+
       const list = [];
       
-      for (let i = 2; i < lines.length; i++) {
-        const row = parseCSVRow(lines[i]);
-        if (!row || row.length < 3) continue;
+      for (let i = headerRowIndex + 1; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row || row.length === 0) continue;
         
-        const store = row[1] ? row[1].trim() : ''; 
-        const item = row[2] ? row[2].trim() : '';  
+        const store = idxStore !== -1 && row[idxStore] ? row[idxStore].trim() : ''; 
+        const item = idxItem !== -1 && row[idxItem] ? row[idxItem].trim() : '';  
         if (!store || !item || store === '店家' || item === '商品') continue;
 
         list.push({ 
           store: store,
           item: item,
-          itemJp: row[3] ? row[3].trim() : '',      
-          style: row[4] ? row[4].trim() : '',       
-          qty: row[5] !== "" ? parseInt(row[5]) : 0,               
-          unTaxed: row[6] ? row[6].trim() : '',     
-          taxed: row[7] ? row[7].trim() : '',       
-          priceRef: row[8] ? row[8].trim() : '',    
-          priceOffer: row[9] ? row[9].trim() : '',  
-          note: row[10] ? row[10].trim() : '',      
-          link: row[11] ? row[11].trim() : '',      
-          image: row[12] ? row[12].trim() : ''      
+          itemJp: idxItemJp !== -1 && row[idxItemJp] ? row[idxItemJp].trim() : '',      
+          style: idxStyle !== -1 && row[idxStyle] ? row[idxStyle].trim() : '',       
+          qty: idxQty !== -1 && row[idxQty] !== "" && !isNaN(row[idxQty]) ? parseInt(row[idxQty]) : 0,               
+          unTaxed: idxUnTaxed !== -1 && row[idxUnTaxed] ? row[idxUnTaxed].trim() : '',     
+          taxed: idxTaxed !== -1 && row[idxTaxed] ? row[idxTaxed].trim() : '',       
+          priceRef: idxPriceRef !== -1 && row[idxPriceRef] ? row[idxPriceRef].trim() : '',    
+          priceOffer: idxPriceOffer !== -1 && row[idxPriceOffer] ? row[idxPriceOffer].trim() : '',  
+          note: idxNote !== -1 && row[idxNote] ? row[idxNote].trim() : '',      
+          link: idxLink !== -1 && row[idxLink] ? row[idxLink].trim() : '',      
+          image: idxImage !== -1 && row[idxImage] ? row[idxImage].trim() : ''      
         });
       }
       wishData = list;
     }
 
-    // ⭐️ 此處已對應新表格欄位順序（B欄為來源，欄位全部往後順延一格）：
-    // A:已購買(0) | B:來源(1,不顯示) | C:下單人(2) | D:店家(3) | E:商品(4) | F:款式(5) | G:下單數量(6) | H:實買數量(7) | I:單價(8) | J:總價(9) | K:備註(10)
     function parseOrdersCSV(csvText) {
-      const lines = csvText.split(/\r\n|\n/);
-      if (lines.length < 3) return;
+      const rows = parseCSV(csvText);
+      if (rows.length < 2) return;
+
+      let headerRowIndex = -1;
+      let headers = [];
+      
+      for (let i = 0; i < Math.min(rows.length, 3); i++) {
+        const row = rows[i];
+        if (row && (row.includes('店家') || row.includes('商品') || row.includes('下單人'))) {
+          headerRowIndex = i;
+          headers = row.map(h => h ? h.trim() : '');
+          break;
+        }
+      }
+
+      if (headerRowIndex === -1) {
+        headerRowIndex = 1;
+        headers = rows[1] ? rows[1].map(h => h ? h.trim() : '') : [];
+      }
+
+      const getColIdx = (names) => {
+        for (let name of names) {
+          let idx = headers.indexOf(name);
+          if (idx !== -1) return idx;
+        }
+        return -1;
+      };
+
+      const idxStatus = getColIdx(['完成', '狀態']);
+      const idxBuyer = getColIdx(['許願人', '下單人']);
+      const idxStore = getColIdx(['店家']);
+      const idxItem = getColIdx(['商品']);
+      const idxStyle = getColIdx(['款式']);
+      const idxQty = getColIdx(['數量', '下單數量']);
+      const idxPrice = getColIdx(['親友價', '單價']);
+      const idxTotal = getColIdx(['總價']);
+      const idxNote = getColIdx(['備註']);
+
       const list = [];
       
-      for (let i = 2; i < lines.length; i++) {
-        const row = parseCSVRow(lines[i]);
-        if (!row || row.length < 5) continue;
+      for (let i = headerRowIndex + 1; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row || row.length === 0) continue;
         
-        const status = row[0] ? row[0].trim() : '';  // A欄: 已購買
-        // row[1] 為「來源」，不讀取也不顯示
-        const buyer = row[2] ? row[2].trim() : '';   // C欄: 下單人
-        const store = row[3] ? row[3].trim() : '';   // D欄: 店家
-        const item = row[4] ? row[4].trim() : '';    // E欄: 商品
+        const status = idxStatus !== -1 && row[idxStatus] ? row[idxStatus].trim() : '';  
+        const buyer = idxBuyer !== -1 && row[idxBuyer] ? row[idxBuyer].trim() : '';   
+        const store = idxStore !== -1 && row[idxStore] ? row[idxStore].trim() : '';   
+        const item = idxItem !== -1 && row[idxItem] ? row[idxItem].trim() : '';    
+        
         if (!store || !item || store === '店家' || item === '商品') continue;
 
-        const style = row[5] ? row[5].trim() : '';   // F欄: 款式
-        const qty = parseInt(row[6]) || 1;           // G欄: 下單數量
-        const csvNote = row[10] ? row[10].trim() : ''; // K欄: 備註
+        const style = idxStyle !== -1 && row[idxStyle] ? row[idxStyle].trim() : '';  
+        const qty = (idxQty !== -1 && parseInt(row[idxQty])) ? parseInt(row[idxQty]) : 1;          
+        const csvNote = idxNote !== -1 && row[idxNote] ? row[idxNote].trim() : '';
 
         const id = `ord_${i}_${store}_${item}_${style}_${buyer}`;
 
-        if (status === "已購買" || status.toLowerCase() === "true") {
+        if (status === "已購買" || status.toLowerCase() === "true" || status === "☑" || status === "TRUE") {
           if (checkedMap[id] === undefined) checkedMap[id] = true;
         }
 
@@ -955,30 +1054,12 @@
           item: item,
           style: style,
           qty: qty,
-          price: row[8] ? row[8].trim() : '',        // I欄: 單價
-          total: row[9] ? row[9].trim() : '',        // J欄: 總價
+          price: idxPrice !== -1 && row[idxPrice] ? row[idxPrice].trim() : '',       
+          total: idxTotal !== -1 && row[idxTotal] ? row[idxTotal].trim() : '',       
           note: csvNote         
         });
       }
       orderData = list;
-    }
-
-    function parseCSVRow(text) {
-      let p = '', c = '', r = [];
-      let q = false;
-      for (let i = 0; i < text.length; i++) {
-        c = text[i];
-        if (c === '"') {
-          if (q && text[i+1] === '"') { p += '"'; i++; }
-          else { q = !q; }
-        } else if (c === ',' && !q) {
-          r.push(p); p = '';
-        } else {
-          p += c;
-        }
-      }
-      r.push(p);
-      return r;
     }
 
     function switchMainTab(tab) {
@@ -1169,7 +1250,7 @@
           let hasStyleInOrders = false;
 
           itemOrders.forEach(o => {
-            if (o.style) {
+            if (o.style && o.style !== '-') {
               styleQtyMap[o.style] = (styleQtyMap[o.style] || 0) + o.qty;
               hasStyleInOrders = true;
             } else {
@@ -1180,9 +1261,13 @@
           let orderStyleItems = [];
           if (hasStyleInOrders) {
             Object.keys(styleQtyMap).forEach(st => {
-              orderStyleItems.push(`${st}: ${styleQtyMap[st]}`);
+              if (st && st !== '-') {
+                orderStyleItems.push(`${st}: ${styleQtyMap[st]}`);
+              }
             });
-            if (totalQtyNoStyle > 0) orderStyleItems.push(`無款式: ${totalQtyNoStyle}`);
+            if (totalQtyNoStyle > 0) {
+              orderStyleItems.push(`總計: ${totalQtyNoStyle}`);
+            }
           } else if (totalQtyNoStyle > 0) {
             orderStyleItems.push(`總計: ${totalQtyNoStyle}`);
           }
@@ -1191,7 +1276,7 @@
           const itemJp = refWish.itemJp || '';
           
           const wishStyles = Array.from(new Set(
-            itemWishes.map(w => w.style).filter(Boolean)
+            itemWishes.map(w => w.style).filter(st => st && st !== '-')
           )).join('、');
 
           const unTaxed = refWish.unTaxed || '';
@@ -1263,7 +1348,8 @@
                             ${orders.map(o => {
                               const isDone = !!checkedMap[o.id];
                               const currentNoteVal = noteMap[o.id] !== undefined ? noteMap[o.id] : (o.note || '');
-                              let displayText = o.style ? `${o.style}+${o.qty}` : `數量: ${o.qty}`;
+                              
+                              let displayText = (o.style && o.style !== '-') ? `${o.style}+${o.qty}` : `數量: ${o.qty}`;
                               
                               return `
                                 <div class="sub-row ${isDone ? 'completed' : ''}" onclick="toggleCheck('${o.id}')">
