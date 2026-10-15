@@ -364,14 +364,14 @@
       border-radius: 10px;
     }
 
-    /* 交通圖專屬卡片與樣式 */
+    /* ---------------- 交通卡片樣式 (維持原站粉紫漸層風格 + 參考排版) ---------------- */
     .traffic-card {
       background-color: var(--card-bg);
       border-radius: 20px;
       border: 1px solid var(--border-color);
       box-shadow: var(--shadow-card);
       overflow: hidden;
-      margin-bottom: 16px;
+      margin-bottom: 20px;
     }
 
     .traffic-header {
@@ -386,15 +386,111 @@
     }
 
     .traffic-body {
-      padding: 14px 18px;
+      padding: 16px;
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 14px;
+    }
+
+    /* 頂部時間與起終點軸線 */
+    .traffic-summary-box {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 8px;
+    }
+
+    .traffic-summary-station {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      min-width: 80px;
+    }
+
+    .traffic-summary-station.end {
+      align-items: flex-end;
+    }
+
+    .summary-time {
+      font-size: 22px;
+      font-weight: 800;
+      color: #5C4B7D;
+      line-height: 1.1;
+    }
+
+    .summary-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-dark);
+      margin-top: 2px;
+    }
+
+    .traffic-summary-line-wrapper {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0 12px;
+    }
+
+    .summary-line-desc {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-dark);
+      margin-bottom: 2px;
+      text-align: center;
+    }
+
+    .summary-line-track {
+      width: 100%;
+      height: 2px;
+      background-color: #D4C5E2;
+      position: relative;
+      margin: 4px 0;
+    }
+
+    .summary-line-track::after {
+      content: '';
+      position: absolute;
+      right: -2px;
+      top: -3px;
+      width: 0;
+      height: 0;
+      border-top: 4px solid transparent;
+      border-bottom: 4px solid transparent;
+      border-left: 6px solid #D4C5E2;
+    }
+
+    .summary-duration {
+      font-size: 12px;
+      font-weight: 700;
+      color: #5C4B7D;
+      margin-top: 2px;
+    }
+
+    /* 備註提示框 */
+    .traffic-note-bubble {
+      background-color: #FAF5F9;
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.5;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      border: 1px solid #F5E6ED;
+    }
+
+    .traffic-note-bubble i {
+      color: var(--primary-dark);
+      margin-top: 3px;
+      font-size: 14px;
     }
 
     .traffic-image-container {
       width: 100%;
-      border-radius: 12px;
+      border-radius: 14px;
       overflow: hidden;
       background: #FFFFFF;
       border: 1px solid #E2D9F3;
@@ -406,11 +502,13 @@
 
     .traffic-image {
       max-width: 100%;
-      max-height: 300px;
+      max-height: 320px;
       object-fit: contain;
       display: block;
+      border-radius: 8px;
     }
 
+    /* ---------------- 購物清單專屬樣式 ---------------- */
     .shopping-container {
       display: flex;
       flex-direction: column;
@@ -459,7 +557,6 @@
       display: flex;
     }
 
-    /* 商品名稱前方的綠色圓形勾勾圖示 */
     .completed-icon {
       color: #2ECC71;
       font-size: 16px;
@@ -847,7 +944,7 @@
     };
 
     function loadCache() {
-      const cached = localStorage.getItem('trip_app_cache_v51');
+      const cached = localStorage.getItem('trip_app_cache_v53');
       if (cached) {
         try {
           const parsed = JSON.parse(cached);
@@ -864,7 +961,7 @@
     }
 
     function saveCache() {
-      localStorage.setItem('trip_app_cache_v51', JSON.stringify({
+      localStorage.setItem('trip_app_cache_v53', JSON.stringify({
         itineraryData, dayDates, wishData, orderData, checkedMap, noteMap, expandedBuyers
       }));
     }
@@ -1221,7 +1318,6 @@
       saveCache();
     }
 
-    // 平滑原生展開/收合店家（不觸發重繪，解決畫面跳動問題）
     function toggleStoreElement(element, storeName) {
       const card = element.closest('.store-group-card');
       if (card) {
@@ -1230,7 +1326,6 @@
       }
     }
 
-    // 平滑原生展開/收合買家（不觸發重繪，解決畫面跳動問題）
     function toggleBuyerElement(element, buyerKey) {
       const group = element.closest('.buyer-group');
       if (group) {
@@ -1340,6 +1435,7 @@
       container.innerHTML = html;
     }
 
+    // 交通頁面渲染（恢復圖片並維持原網站粉紫粉嫩風格）
     function renderTrafficDay(day) {
       const container = document.getElementById('main-content');
       const list = (itineraryData[day] || []).filter(item => item.category === '交通');
@@ -1355,6 +1451,21 @@
       }
 
       list.forEach(item => {
+        let startStation = "起點站";
+        let endStation = "終點站";
+        if (item.title.includes('→')) {
+          const parts = item.title.split('→');
+          startStation = parts[0].trim();
+          endStation = parts[1].trim();
+        } else if (item.title.includes(' - ')) {
+          const parts = item.title.split(' - ');
+          startStation = parts[0].trim();
+          endStation = parts[1].trim();
+        } else {
+          startStation = item.title;
+          endStation = '';
+        }
+
         let trafficImgHtml = item.trafficUrl ? `
           <div class="traffic-image-container">
             <img src="${item.trafficUrl}" class="traffic-image" referrerpolicy="no-referrer" 
@@ -1371,14 +1482,48 @@
           </div>
         ` : '';
 
+        let notesText = [];
+        if (item.note) notesText.push(item.note);
+        if (item.cost) notesText.push(`費用: ${item.cost}`);
+        let combinedNotes = notesText.join(' ｜ ');
+
         html += `
           <div class="traffic-card">
+            <!-- 原站粉紫漸層 Header -->
             <div class="traffic-header">
               <span><i class="fa-solid fa-route"></i> ${item.title}</span>
               <span class="category-tag tag-交通" style="background:#FFFFFF;">交通</span>
             </div>
+            
             <div class="traffic-body">
-              ${item.desc ? `<div class="card-desc">${item.desc}</div>` : ''}
+              <!-- 1. 頂部摘要 -->
+              <div class="traffic-summary-box">
+                <div class="traffic-summary-station">
+                  <span class="summary-time">${item.timeStart || '--:--'}</span>
+                  <span class="summary-name">${startStation}</span>
+                </div>
+                
+                <div class="traffic-summary-line-wrapper">
+                  <span class="summary-line-desc">${item.desc || '大眾運輸'}</span>
+                  <div class="summary-line-track"></div>
+                  ${item.duration ? `<span class="summary-duration">${item.duration}</span>` : ''}
+                </div>
+                
+                <div class="traffic-summary-station end">
+                  <span class="summary-time">${item.timeEnd || '--:--'}</span>
+                  <span class="summary-name">${endStation}</span>
+                </div>
+              </div>
+
+              <!-- 2. 備註提示框 -->
+              ${combinedNotes ? `
+                <div class="traffic-note-bubble">
+                  <i class="fa-solid fa-circle-info"></i>
+                  <span>${combinedNotes}</span>
+                </div>
+              ` : ''}
+
+              <!-- 3. 交通圖（已恢復顯示） -->
               ${trafficImgHtml}
             </div>
           </div>
@@ -1442,7 +1587,6 @@
           const itemWishes = storeWishes.filter(w => w.item === prodName);
           const itemOrders = storeOrders.filter(o => o.item === prodName);
 
-          // 判斷該商品是否所有下單皆已完成
           const isItemAllCompleted = itemOrders.length > 0 && itemOrders.every(o => checkedMap[o.id]);
 
           const styleQtyMap = {};
