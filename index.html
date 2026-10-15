@@ -459,6 +459,13 @@
       display: flex;
     }
 
+    /* 商品名稱前方的綠色圓形勾勾圖示 */
+    .completed-icon {
+      color: #2ECC71;
+      font-size: 16px;
+      margin-right: 4px;
+    }
+
     .product-card {
       background: #FFF9FB;
       border: 1px solid #FCE4EC;
@@ -481,6 +488,8 @@
       font-weight: 700;
       color: var(--text-dark);
       line-height: 1.35;
+      display: flex;
+      align-items: center;
     }
 
     .product-titles .jp-title-inline {
@@ -838,7 +847,7 @@
     };
 
     function loadCache() {
-      const cached = localStorage.getItem('trip_app_cache_v49');
+      const cached = localStorage.getItem('trip_app_cache_v51');
       if (cached) {
         try {
           const parsed = JSON.parse(cached);
@@ -855,7 +864,7 @@
     }
 
     function saveCache() {
-      localStorage.setItem('trip_app_cache_v49', JSON.stringify({
+      localStorage.setItem('trip_app_cache_v51', JSON.stringify({
         itineraryData, dayDates, wishData, orderData, checkedMap, noteMap, expandedBuyers
       }));
     }
@@ -985,12 +994,6 @@
         const desc = row[6] ? row[6].trim() : '';
         const duration = row[7] ? row[7].trim() : '';
         
-        // 依照表格截圖精確對應：
-        // 欄 I (索引 8): 費用
-        // 欄 J (索引 9): 備註
-        // 欄 K (索引 10): Google Map
-        // 欄 L (索引 11): 圖片
-        // 欄 M (索引 12): 交通圖
         const cost = row[8] ? row[8].trim() : '';
         const note = row[9] ? row[9].trim() : '';
         const mapUrl = row[10] ? row[10].trim() : '';
@@ -1218,19 +1221,23 @@
       saveCache();
     }
 
-    function toggleStoreOpen(storeName) {
-      expandedStores[storeName] = !expandedStores[storeName];
-      renderShoppingList();
+    // 平滑原生展開/收合店家（不觸發重繪，解決畫面跳動問題）
+    function toggleStoreElement(element, storeName) {
+      const card = element.closest('.store-group-card');
+      if (card) {
+        card.classList.toggle('open');
+        expandedStores[storeName] = card.classList.contains('open');
+      }
     }
 
-    function toggleBuyerOpen(buyerKey) {
-      if (expandedBuyers[buyerKey] === undefined) {
-        expandedBuyers[buyerKey] = false;
-      } else {
-        expandedBuyers[buyerKey] = !expandedBuyers[buyerKey];
+    // 平滑原生展開/收合買家（不觸發重繪，解決畫面跳動問題）
+    function toggleBuyerElement(element, buyerKey) {
+      const group = element.closest('.buyer-group');
+      if (group) {
+        group.classList.toggle('open');
+        expandedBuyers[buyerKey] = group.classList.contains('open');
+        saveCache();
       }
-      saveCache();
-      renderShoppingList();
     }
 
     function renderView() {
@@ -1421,7 +1428,7 @@
 
         html += `
           <div class="store-group-card ${isStoreOpen ? 'open' : ''}">
-            <div class="store-header" onclick="toggleStoreOpen('${storeName}')">
+            <div class="store-header" onclick="toggleStoreElement(this, '${storeName}')">
               <span><i class="fa-solid fa-store"></i> ${storeName}</span>
               <div style="display: flex; align-items: center; gap: 8px;">
                 ${storeOrders.length > 0 ? `<span style="font-size: 12px; font-weight: 700; background: rgba(255,255,255,0.85); color: #276A3C; padding: 2px 8px; border-radius: 10px;">採購進度: ${completedCount}/${storeOrders.length}</span>` : ''}
@@ -1434,6 +1441,9 @@
         productNames.forEach(prodName => {
           const itemWishes = storeWishes.filter(w => w.item === prodName);
           const itemOrders = storeOrders.filter(o => o.item === prodName);
+
+          // 判斷該商品是否所有下單皆已完成
+          const isItemAllCompleted = itemOrders.length > 0 && itemOrders.every(o => checkedMap[o.id]);
 
           const styleQtyMap = {};
           let totalQtyNoStyle = 0;
@@ -1532,7 +1542,10 @@
             <div class="product-card">
               <div class="product-row-1">
                 <div class="product-titles">
-                  <h4>${prodName}${itemJp ? `<span class="jp-title-inline">(${itemJp})</span>` : ''}</h4>
+                  <h4>
+                    ${isItemAllCompleted ? '<i class="fa-solid fa-circle-check completed-icon"></i>' : ''}
+                    ${prodName}${itemJp ? `<span class="jp-title-inline">(${itemJp})</span>` : ''}
+                  </h4>
                 </div>
               </div>
 
@@ -1563,7 +1576,7 @@
 
                       return `
                         <div class="buyer-group ${isBuyerOpen ? 'open' : ''}">
-                          <div class="buyer-group-title" onclick="toggleBuyerOpen('${buyerKey}')">
+                          <div class="buyer-group-title" onclick="toggleBuyerElement(this, '${buyerKey}')">
                             <span><i class="fa-regular fa-user"></i> 下單人: ${bName}</span>
                             <div style="display: flex; align-items: center; gap: 8px;">
                               <span class="buyer-progress-badge">採購進度: ${completedBuyerCount}/${orders.length}</span>
