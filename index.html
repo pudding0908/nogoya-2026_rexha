@@ -348,16 +348,66 @@
 
     .card-image-wrapper {
       width: 100%;
-      max-height: 220px;
       border-radius: 14px;
       overflow: hidden;
       margin-top: 6px;
+      background: #FFFFFF;
+      border: 1px solid #FCE4EC;
+      padding: 4px;
     }
 
     .card-image {
       width: 100%;
-      height: 100%;
+      max-height: 220px;
       object-fit: cover;
+      display: block;
+      border-radius: 10px;
+    }
+
+    /* 交通圖專屬卡片與樣式 */
+    .traffic-card {
+      background-color: var(--card-bg);
+      border-radius: 20px;
+      border: 1px solid var(--border-color);
+      box-shadow: var(--shadow-card);
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+
+    .traffic-header {
+      background: linear-gradient(135deg, #E2D9F3 0%, #B5E2FA 100%);
+      padding: 12px 18px;
+      font-size: 16px;
+      font-weight: 700;
+      color: #5C4B7D;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .traffic-body {
+      padding: 14px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .traffic-image-container {
+      width: 100%;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #FFFFFF;
+      border: 1px solid #E2D9F3;
+      padding: 6px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .traffic-image {
+      max-width: 100%;
+      max-height: 300px;
+      object-fit: contain;
       display: block;
     }
 
@@ -416,7 +466,7 @@
       padding: 14px;
       display: flex;
       flex-direction: column;
-      gap: 6px; /* 極致緊湊間距 */
+      gap: 6px;
     }
 
     .product-row-1 {
@@ -747,6 +797,10 @@
         <i class="fa-solid fa-map-location-dot"></i>
         <span>行程</span>
       </button>
+      <button class="bottom-nav-item" id="nav-traffic" onclick="switchMainTab('traffic')">
+        <i class="fa-solid fa-train-subway"></i>
+        <span>交通</span>
+      </button>
       <button class="bottom-nav-item" id="nav-shopping" onclick="switchMainTab('shopping')">
         <i class="fa-solid fa-bag-shopping"></i>
         <span>購物</span>
@@ -784,7 +838,7 @@
     };
 
     function loadCache() {
-      const cached = localStorage.getItem('trip_app_cache_v42');
+      const cached = localStorage.getItem('trip_app_cache_v49');
       if (cached) {
         try {
           const parsed = JSON.parse(cached);
@@ -801,7 +855,7 @@
     }
 
     function saveCache() {
-      localStorage.setItem('trip_app_cache_v42', JSON.stringify({
+      localStorage.setItem('trip_app_cache_v49', JSON.stringify({
         itineraryData, dayDates, wishData, orderData, checkedMap, noteMap, expandedBuyers
       }));
     }
@@ -887,6 +941,18 @@
       return result;
     }
 
+    function processAssetUrl(inputVal, titleVal, folderName) {
+      let fileName = inputVal ? inputVal.trim() : titleVal.trim();
+      if (!fileName) return '';
+      if (fileName.startsWith('http://') || fileName.startsWith('https://')) {
+        return fileName;
+      }
+      if (!fileName.includes('.')) {
+        return `${folderName}/${fileName}.jpg`;
+      }
+      return `${folderName}/${fileName}`;
+    }
+
     function parseItineraryCSV(csvText) {
       const rows = parseCSV(csvText);
       if (rows.length < 2) return;
@@ -898,7 +964,7 @@
 
       for (let i = 1; i < rows.length; i++) {
         const row = rows[i];
-        if (!row || row.length < 4) continue;
+        if (!row || row.length < 5) continue;
 
         let rawDate = row[0] ? row[0].trim() : '';
         let dayNum = parseInt(row[1]) || parseInt(row[0]);
@@ -918,13 +984,25 @@
         const category = row[5] ? row[5].trim() : '景點';
         const desc = row[6] ? row[6].trim() : '';
         const duration = row[7] ? row[7].trim() : '';
+        
+        // 依照表格截圖精確對應：
+        // 欄 I (索引 8): 費用
+        // 欄 J (索引 9): 備註
+        // 欄 K (索引 10): Google Map
+        // 欄 L (索引 11): 圖片
+        // 欄 M (索引 12): 交通圖
         const cost = row[8] ? row[8].trim() : '';
         const note = row[9] ? row[9].trim() : '';
         const mapUrl = row[10] ? row[10].trim() : '';
-        const imageUrl = row[11] ? row[11].trim() : '';
+        
+        const rawImgInput = row[11] ? row[11].trim() : '';
+        const rawTrafficInput = row[12] ? row[12].trim() : '';
+
+        const imageUrl = processAssetUrl(rawImgInput, title, 'travel');
+        const trafficUrl = processAssetUrl(rawTrafficInput, title, 'traffic');
 
         newItinerary[activeDay].push({
-          timeStart, timeEnd, title, category, desc, duration, cost, note, mapUrl, imageUrl
+          timeStart, timeEnd, title, category, desc, duration, cost, note, mapUrl, imageUrl, trafficUrl
         });
       }
 
@@ -1100,12 +1178,13 @@
     function switchMainTab(tab) {
       currentMainTab = tab;
       document.getElementById('nav-itinerary').classList.toggle('active', tab === 'itinerary');
+      document.getElementById('nav-traffic').classList.toggle('active', tab === 'traffic');
       document.getElementById('nav-shopping').classList.toggle('active', tab === 'shopping');
       
       const dateTabsWrapper = document.getElementById('date-tabs-wrapper');
       const mainContent = document.getElementById('main-content');
 
-      if (tab === 'itinerary') {
+      if (tab === 'itinerary' || tab === 'traffic') {
         dateTabsWrapper.style.display = 'block';
         mainContent.style.paddingTop = '195px';
       } else {
@@ -1120,7 +1199,11 @@
     function switchDay(day) {
       currentDay = day;
       renderTabs();
-      renderItineraryDay(day);
+      if (currentMainTab === 'itinerary') {
+        renderItineraryDay(day);
+      } else if (currentMainTab === 'traffic') {
+        renderTrafficDay(day);
+      }
       window.scrollTo(0, 0);
     }
 
@@ -1151,14 +1234,22 @@
     }
 
     function renderView() {
+      const dateTabsWrapper = document.getElementById('date-tabs-wrapper');
+      const mainContent = document.getElementById('main-content');
+
       if (currentMainTab === 'itinerary') {
-        document.getElementById('date-tabs-wrapper').style.display = 'block';
-        document.getElementById('main-content').style.paddingTop = '195px';
+        dateTabsWrapper.style.display = 'block';
+        mainContent.style.paddingTop = '195px';
         renderTabs();
         renderItineraryDay(currentDay);
+      } else if (currentMainTab === 'traffic') {
+        dateTabsWrapper.style.display = 'block';
+        mainContent.style.paddingTop = '195px';
+        renderTabs();
+        renderTrafficDay(currentDay);
       } else {
-        document.getElementById('date-tabs-wrapper').style.display = 'none';
-        document.getElementById('main-content').style.paddingTop = '145px';
+        dateTabsWrapper.style.display = 'none';
+        mainContent.style.paddingTop = '145px';
         renderShoppingList();
       }
     }
@@ -1201,7 +1292,22 @@
         if (item.cost) metaHtml += `<div class="meta-item"><i class="fa-solid fa-yen-sign"></i> 費用: <strong>${item.cost}</strong></div>`;
         if (item.note) metaHtml += `<div class="meta-item" style="width:100%;"><i class="fa-regular fa-note-sticky"></i> 備註: ${item.note}</div>`;
 
-        let imgHtml = item.imageUrl ? `<div class="card-image-wrapper"><img src="${item.imageUrl}" class="card-image" referrerpolicy="no-referrer"></div>` : '';
+        let imgHtml = item.imageUrl ? `
+          <div class="card-image-wrapper">
+            <img src="${item.imageUrl}" class="card-image" referrerpolicy="no-referrer" 
+                 onload="this.closest('.card-image-wrapper').style.display='block';"
+                 onerror="
+                   if (this.src.endsWith('.jpg')) {
+                     this.src = this.src.replace('.jpg', '.png');
+                   } else if (this.src.endsWith('.png')) {
+                     this.src = this.src.replace('.png', '.JPG');
+                   } else {
+                     this.closest('.card-image-wrapper').style.display='none';
+                   }
+                 ">
+          </div>
+        ` : '';
+
         let mapSearchUrl = item.mapUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.title)}`;
 
         html += `
@@ -1218,6 +1324,55 @@
               ${metaHtml ? `<div class="card-meta">${metaHtml}</div>` : ''}
               <div><a href="${mapSearchUrl}" target="_blank" class="map-btn"><i class="fa-solid fa-location-dot"></i> 地圖導航</a></div>
               ${imgHtml}
+            </div>
+          </div>
+        `;
+      });
+
+      html += `</div>`;
+      container.innerHTML = html;
+    }
+
+    function renderTrafficDay(day) {
+      const container = document.getElementById('main-content');
+      const list = (itineraryData[day] || []).filter(item => item.category === '交通');
+
+      let html = `<div style="max-width:600px; margin:0 auto;">`;
+      html += `<div class="section-title" style="margin-bottom:14px;"><i class="fa-solid fa-train-subway"></i> 交通指引 (Day ${day})</div>`;
+
+      if (list.length === 0) {
+        html += `<div class="empty-state"><i class="fa-solid fa-train"></i><p>第 ${day} 天無交通分類資料</p></div>`;
+        html += `</div>`;
+        container.innerHTML = html;
+        return;
+      }
+
+      list.forEach(item => {
+        let trafficImgHtml = item.trafficUrl ? `
+          <div class="traffic-image-container">
+            <img src="${item.trafficUrl}" class="traffic-image" referrerpolicy="no-referrer" 
+                 onload="this.closest('.traffic-image-container').style.display='flex';"
+                 onerror="
+                   if (this.src.endsWith('.jpg')) {
+                     this.src = this.src.replace('.jpg', '.png');
+                   } else if (this.src.endsWith('.png')) {
+                     this.src = this.src.replace('.png', '.JPG');
+                   } else {
+                     this.closest('.traffic-image-container').style.display='none';
+                   }
+                 ">
+          </div>
+        ` : '';
+
+        html += `
+          <div class="traffic-card">
+            <div class="traffic-header">
+              <span><i class="fa-solid fa-route"></i> ${item.title}</span>
+              <span class="category-tag tag-交通" style="background:#FFFFFF;">交通</span>
+            </div>
+            <div class="traffic-body">
+              ${item.desc ? `<div class="card-desc">${item.desc}</div>` : ''}
+              ${trafficImgHtml}
             </div>
           </div>
         `;
@@ -1334,7 +1489,6 @@
           }
           if (priceOffer) priceParts.push(`開價: <strong>${priceOffer}</strong>`);
 
-          // 獨立拆分：款式、價格、備註、連結、總數、圖片
           const styleHtml = (wishStyles && wishStyles.trim() !== '' && wishStyles.trim() !== '-') 
             ? `<div class="product-row-style"><i class="fa-solid fa-tag"></i> 款式: ${wishStyles}</div>` 
             : '';
@@ -1350,12 +1504,10 @@
                </div>` 
             : '';
 
-          // 獨立備註（只有文字備註存在時才渲染）
           const noteHtml = (globalNote && globalNote.trim() !== '') 
             ? `<div class="product-row-note"><span>備註: ${globalNote}</span></div>` 
             : '';
 
-          // 獨立連結（只有連結存在時才渲染）
           const linkHtml = (link && link.trim() !== '') 
             ? `<div class="product-row-link"><a href="${link}" target="_blank" style="color: #3498db; text-decoration: none;"><i class="fa-solid fa-link"></i> 連結</a></div>` 
             : '';
@@ -1378,32 +1530,19 @@
 
           html += `
             <div class="product-card">
-              <!-- 1. 商品標題 -->
               <div class="product-row-1">
                 <div class="product-titles">
                   <h4>${prodName}${itemJp ? `<span class="jp-title-inline">(${itemJp})</span>` : ''}</h4>
                 </div>
               </div>
 
-              <!-- 2. 款式 -->
               ${styleHtml}
-
-              <!-- 3. 價格 -->
               ${priceHtml}
-
-              <!-- 4. 下單總數 -->
               ${orderHtml}
-
-              <!-- 5. 備註 (獨立，有填才顯示) -->
               ${noteHtml}
-
-              <!-- 6. 連結 (獨立，有填才顯示) -->
               ${linkHtml}
-
-              <!-- 7. 圖片區塊 -->
               ${imageHtml}
 
-              <!-- 8. 下單區塊 -->
               ${itemOrders.length > 0 ? `
                 <div class="sub-box">
                   <span class="sub-title order"><i class="fa-solid fa-cart-shopping"></i> 下單區塊</span>
