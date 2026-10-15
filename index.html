@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>日本中部獨旅 - 夢幻隨行手帳</title>
+  <title>行程與購物清單</title>
   
   <!-- FontAwesome 圖標 -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -416,7 +416,7 @@
       padding: 14px;
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 6px; /* 極致緊湊間距 */
     }
 
     .product-row-1 {
@@ -440,6 +440,27 @@
       margin-left: 4px;
     }
 
+    .product-image-container {
+      width: 100%;
+      max-height: 140px;
+      display: none;
+      justify-content: center;
+      align-items: center;
+      background: #FFFFFF;
+      border-radius: 12px;
+      overflow: hidden;
+      margin-top: 2px;
+      border: 1px solid #F7E4EB;
+      padding: 6px;
+    }
+
+    .product-image {
+      max-width: 100%;
+      max-height: 130px;
+      object-fit: contain;
+      display: block;
+    }
+
     .product-order-box {
       font-size: 13px;
       font-weight: 700;
@@ -448,7 +469,7 @@
       border: 1px solid #FFE0B2;
       padding: 8px 12px;
       border-radius: 10px;
-      margin-top: 4px;
+      margin-top: 2px;
       display: flex;
       flex-direction: column;
       gap: 4px;
@@ -488,7 +509,7 @@
       color: var(--text-dark);
       display: flex;
       flex-wrap: wrap;
-      gap: 10px;
+      gap: 12px;
       align-items: center;
     }
 
@@ -499,15 +520,16 @@
     .product-row-note {
       font-size: 12px;
       color: var(--text-muted);
-      background: #FFFFFF;
-      padding: 6px 10px;
-      border-radius: 8px;
-      border: 1px dashed #FFD1DC;
-      margin-top: 2px;
+      white-space: pre-line;
+      word-break: break-all;
+    }
+
+    .product-row-link {
+      font-size: 12px;
     }
 
     .sub-box {
-      margin-top: 6px;
+      margin-top: 4px;
       padding-top: 8px;
       border-top: 1px dashed #FCE4EC;
       display: flex;
@@ -762,7 +784,7 @@
     };
 
     function loadCache() {
-      const cached = localStorage.getItem('trip_app_cache_v32');
+      const cached = localStorage.getItem('trip_app_cache_v42');
       if (cached) {
         try {
           const parsed = JSON.parse(cached);
@@ -779,7 +801,7 @@
     }
 
     function saveCache() {
-      localStorage.setItem('trip_app_cache_v32', JSON.stringify({
+      localStorage.setItem('trip_app_cache_v42', JSON.stringify({
         itineraryData, dayDates, wishData, orderData, checkedMap, noteMap, expandedBuyers
       }));
     }
@@ -840,7 +862,6 @@
       });
     }
 
-    // 通用 CSV 解析函式（支援 Enter 換行與雙引號）
     function parseCSV(text) {
       const result = [[]];
       let inQuotes = false;
@@ -911,6 +932,16 @@
       dayDates = newDayDates;
     }
 
+    function processShoppingImageUrl(url, store, item) {
+      if (url) {
+        if (url.startsWith('http://') || url.startsWith('https://')) {
+          return url;
+        }
+        return `images/${url}`;
+      }
+      return `images/${store}_${item}.png`;
+    }
+
     function parseShoppingWishCSV(csvText) {
       const rows = parseCSV(csvText);
       if (rows.length < 2) return;
@@ -932,26 +963,27 @@
         headers = rows[1] ? rows[1].map(h => h ? h.trim() : '') : [];
       }
 
-      const getColIdx = (names) => {
-        for (let name of names) {
-          let idx = headers.indexOf(name);
-          if (idx !== -1) return idx;
+      const getColIdxByKeyword = (keywords) => {
+        for (let kw of keywords) {
+          for (let i = 0; i < headers.length; i++) {
+            if (headers[i].includes(kw)) return i;
+          }
         }
         return -1;
       };
 
-      const idxStore = getColIdx(['店家']);
-      const idxItem = getColIdx(['商品']);
-      const idxItemJp = getColIdx(['商品日文']);
-      const idxStyle = getColIdx(['款式']);
-      const idxQty = getColIdx(['數量']);
-      const idxUnTaxed = getColIdx(['未稅/個', '未稅']);
-      const idxTaxed = getColIdx(['含稅/個', '含稅']);
-      const idxPriceRef = getColIdx(['參考台幣/個', '參考台幣']);
-      const idxPriceOffer = getColIdx(['開價/個', '開價']);
-      const idxNote = getColIdx(['備註']);
-      const idxLink = getColIdx(['連結']);
-      const idxImage = getColIdx(['圖片', '相片']);
+      const idxStore = getColIdxByKeyword(['店家', '店名']);
+      const idxItem = getColIdxByKeyword(['商品', '品名']);
+      const idxItemJp = getColIdxByKeyword(['日文', '外文']);
+      const idxStyle = getColIdxByKeyword(['款式', '規格', '顏色']);
+      const idxQty = getColIdxByKeyword(['數量', '數']);
+      const idxUnTaxed = getColIdxByKeyword(['未稅']);
+      const idxTaxed = getColIdxByKeyword(['含稅']);
+      const idxPriceRef = getColIdxByKeyword(['台幣', '參考']);
+      const idxPriceOffer = getColIdxByKeyword(['開價', '售價', '價格']);
+      const idxNote = getColIdxByKeyword(['備註', '說明']);
+      const idxLink = getColIdxByKeyword(['連結', '網址']);
+      const idxImage = getColIdxByKeyword(['圖片', '相片', '照片']);
 
       const list = [];
       
@@ -962,6 +994,9 @@
         const store = idxStore !== -1 && row[idxStore] ? row[idxStore].trim() : ''; 
         const item = idxItem !== -1 && row[idxItem] ? row[idxItem].trim() : '';  
         if (!store || !item || store === '店家' || item === '商品') continue;
+
+        let rawImg = idxImage !== -1 && row[idxImage] ? row[idxImage].trim() : '';
+        let finalImageUrl = processShoppingImageUrl(rawImg, store, item);
 
         list.push({ 
           store: store,
@@ -975,7 +1010,7 @@
           priceOffer: idxPriceOffer !== -1 && row[idxPriceOffer] ? row[idxPriceOffer].trim() : '',  
           note: idxNote !== -1 && row[idxNote] ? row[idxNote].trim() : '',      
           link: idxLink !== -1 && row[idxLink] ? row[idxLink].trim() : '',      
-          image: idxImage !== -1 && row[idxImage] ? row[idxImage].trim() : ''      
+          image: finalImageUrl      
         });
       }
       wishData = list;
@@ -1272,6 +1307,17 @@
             orderStyleItems.push(`總計: ${totalQtyNoStyle}`);
           }
 
+          let taxed = '', unTaxed = '', priceRef = '', priceOffer = '', globalNote = '', link = '', image = '';
+          itemWishes.forEach(w => {
+            if (!taxed && w.taxed) taxed = w.taxed;
+            if (!unTaxed && w.unTaxed) unTaxed = w.unTaxed;
+            if (!priceRef && w.priceRef) priceRef = w.priceRef;
+            if (!priceOffer && w.priceOffer) priceOffer = w.priceOffer;
+            if (!globalNote && w.note) globalNote = w.note;
+            if (!link && w.link) link = w.link;
+            if (!image && w.image) image = w.image;
+          });
+
           const refWish = itemWishes[0] || {};
           const itemJp = refWish.itemJp || '';
           
@@ -1279,44 +1325,85 @@
             itemWishes.map(w => w.style).filter(st => st && st !== '-')
           )).join('、');
 
-          const unTaxed = refWish.unTaxed || '';
-          const taxed = refWish.taxed || '';
-          const priceRef = refWish.priceRef || '';
-          const priceOffer = refWish.priceOffer || '';
-          const globalNote = refWish.note || '';
-          const link = refWish.link || '';
-
           let priceParts = [];
-          if (unTaxed) priceParts.push(`未稅: <strong>${unTaxed}</strong>`);
           if (taxed) priceParts.push(`含稅: <strong>${taxed}</strong>`);
-          if (priceRef) priceParts.push(`<span style="color:var(--text-muted); font-weight:normal;">(約台幣$${priceRef.replace(/[^0-9.]/g, '') || priceRef})</span>`);
+          if (unTaxed) priceParts.push(`未稅: <strong>${unTaxed}</strong>`);
+          if (priceRef) {
+            const cleanRef = priceRef.replace(/[^0-9.]/g, '') || priceRef;
+            priceParts.push(`<span style="color:var(--text-muted); font-weight:normal;">(約台幣$${cleanRef})</span>`);
+          }
           if (priceOffer) priceParts.push(`開價: <strong>${priceOffer}</strong>`);
+
+          // 獨立拆分：款式、價格、備註、連結、總數、圖片
+          const styleHtml = (wishStyles && wishStyles.trim() !== '' && wishStyles.trim() !== '-') 
+            ? `<div class="product-row-style"><i class="fa-solid fa-tag"></i> 款式: ${wishStyles}</div>` 
+            : '';
+
+          const priceHtml = (priceParts.length > 0) 
+            ? `<div class="product-row-prices">${priceParts.join(' ')}</div>` 
+            : '';
+
+          const orderHtml = (orderStyleItems.length > 0) 
+            ? `<div class="product-order-box">
+                 <div class="product-order-box-title"><i class="fa-solid fa-boxes-stacked"></i> 下單總數</div>
+                 ${orderStyleItems.map(itemStr => `<div class="product-order-item">• ${itemStr}</div>`).join('')}
+               </div>` 
+            : '';
+
+          // 獨立備註（只有文字備註存在時才渲染）
+          const noteHtml = (globalNote && globalNote.trim() !== '') 
+            ? `<div class="product-row-note"><span>備註: ${globalNote}</span></div>` 
+            : '';
+
+          // 獨立連結（只有連結存在時才渲染）
+          const linkHtml = (link && link.trim() !== '') 
+            ? `<div class="product-row-link"><a href="${link}" target="_blank" style="color: #3498db; text-decoration: none;"><i class="fa-solid fa-link"></i> 連結</a></div>` 
+            : '';
+
+          const imageHtml = image 
+            ? `<div class="product-image-container">
+                 <img src="${image}" class="product-image" referrerpolicy="no-referrer" 
+                      onload="this.closest('.product-image-container').style.display='flex';"
+                      onerror="
+                        if (this.src.endsWith('.png')) {
+                          this.src = this.src.replace('.png', '.jpg');
+                        } else if (this.src.endsWith('.jpg')) {
+                          this.src = this.src.replace('.jpg', '.png');
+                        } else {
+                          this.closest('.product-image-container').style.display='none';
+                        }
+                      ">
+               </div>` 
+            : '';
 
           html += `
             <div class="product-card">
+              <!-- 1. 商品標題 -->
               <div class="product-row-1">
                 <div class="product-titles">
                   <h4>${prodName}${itemJp ? `<span class="jp-title-inline">(${itemJp})</span>` : ''}</h4>
                 </div>
               </div>
 
-              ${wishStyles ? `<div class="product-row-style"><i class="fa-solid fa-tag"></i> 款式: ${wishStyles}</div>` : ''}
-              ${priceParts.length > 0 ? `<div class="product-row-prices">${priceParts.join(' ')}</div>` : ''}
+              <!-- 2. 款式 -->
+              ${styleHtml}
 
-              ${orderStyleItems.length > 0 ? `
-                <div class="product-order-box">
-                  <div class="product-order-box-title"><i class="fa-solid fa-boxes-stacked"></i> 下單總數</div>
-                  ${orderStyleItems.map(itemStr => `<div class="product-order-item">• ${itemStr}</div>`).join('')}
-                </div>
-              ` : ''}
+              <!-- 3. 價格 -->
+              ${priceHtml}
 
-              ${(globalNote || link) ? `
-                <div class="product-row-note">
-                  ${globalNote ? `<span>備註: ${globalNote}</span> ` : ''}
-                  ${link ? `<a href="${link}" target="_blank" style="color: #3498db; text-decoration: none;"><i class="fa-solid fa-link"></i> 連結</a>` : ''}
-                </div>
-              ` : ''}
+              <!-- 4. 下單總數 -->
+              ${orderHtml}
 
+              <!-- 5. 備註 (獨立，有填才顯示) -->
+              ${noteHtml}
+
+              <!-- 6. 連結 (獨立，有填才顯示) -->
+              ${linkHtml}
+
+              <!-- 7. 圖片區塊 -->
+              ${imageHtml}
+
+              <!-- 8. 下單區塊 -->
               ${itemOrders.length > 0 ? `
                 <div class="sub-box">
                   <span class="sub-title order"><i class="fa-solid fa-cart-shopping"></i> 下單區塊</span>
