@@ -364,7 +364,7 @@
       border-radius: 10px;
     }
 
-    /* ---------------- 交通卡片樣式 (維持原站粉紫漸層風格 + 參考排版) ---------------- */
+    /* ---------------- 交通卡片樣式 ---------------- */
     .traffic-card {
       background-color: var(--card-bg);
       border-radius: 20px;
@@ -392,7 +392,6 @@
       gap: 14px;
     }
 
-    /* 頂部時間與起終點軸線 */
     .traffic-summary-box {
       display: flex;
       align-items: center;
@@ -468,7 +467,6 @@
       margin-top: 2px;
     }
 
-    /* 備註提示框 */
     .traffic-note-bubble {
       background-color: #FAF5F9;
       border-radius: 12px;
@@ -944,7 +942,7 @@
     };
 
     function loadCache() {
-      const cached = localStorage.getItem('trip_app_cache_v53');
+      const cached = localStorage.getItem('trip_app_cache_v54');
       if (cached) {
         try {
           const parsed = JSON.parse(cached);
@@ -961,7 +959,7 @@
     }
 
     function saveCache() {
-      localStorage.setItem('trip_app_cache_v53', JSON.stringify({
+      localStorage.setItem('trip_app_cache_v54', JSON.stringify({
         itineraryData, dayDates, wishData, orderData, checkedMap, noteMap, expandedBuyers
       }));
     }
@@ -1001,14 +999,23 @@
       const btnIcon = document.getElementById('upload-icon');
       if (btnIcon) btnIcon.classList.add('spin');
 
+      // 打包所有訂單的目前狀態與備註，發送至後端
+      const payloadItems = orderData.map(o => {
+        return {
+          store: o.store,
+          item: o.item,
+          style: o.style,
+          buyer: o.buyer,
+          checked: !!checkedMap[o.id],
+          note: noteMap[o.id] !== undefined ? noteMap[o.id] : (o.note || '')
+        };
+      });
+
       fetch(GAS_WEB_APP_URL, {
         method: 'POST',
         mode: 'no-cors',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          checkedMap: checkedMap,
-          noteMap: noteMap 
-        })
+        body: JSON.stringify({ items: payloadItems })
       })
       .then(() => {
         alert("✨ 採購狀態與備註已發送更新至 Google Sheet！");
@@ -1223,7 +1230,7 @@
         return -1;
       };
 
-      const idxStatus = getColIdx(['完成', '狀態']);
+      const idxStatus = getColIdx(['完成', '狀態', '已購買']);
       const idxBuyer = getColIdx(['許願人', '下單人']);
       const idxStore = getColIdx(['店家']);
       const idxItem = getColIdx(['商品']);
@@ -1252,8 +1259,11 @@
 
         const id = `ord_${i}_${store}_${item}_${style}_${buyer}`;
 
-        if (status === "已購買" || status.toLowerCase() === "true" || status === "☑" || status === "TRUE") {
-          if (checkedMap[id] === undefined) checkedMap[id] = true;
+        // 確保從 CSV 讀取到已打勾狀態時同步更新到 checkedMap
+        if (status === "已購買" || status.toLowerCase() === "true" || status === "☑" || status === "TRUE" || status === "已買") {
+          checkedMap[id] = true;
+        } else if (checkedMap[id] === undefined) {
+          checkedMap[id] = false;
         }
 
         if (noteMap[id] === undefined) {
@@ -1435,7 +1445,6 @@
       container.innerHTML = html;
     }
 
-    // 交通頁面渲染（恢復圖片並維持原網站粉紫粉嫩風格）
     function renderTrafficDay(day) {
       const container = document.getElementById('main-content');
       const list = (itineraryData[day] || []).filter(item => item.category === '交通');
@@ -1489,14 +1498,12 @@
 
         html += `
           <div class="traffic-card">
-            <!-- 原站粉紫漸層 Header -->
             <div class="traffic-header">
               <span><i class="fa-solid fa-route"></i> ${item.title}</span>
               <span class="category-tag tag-交通" style="background:#FFFFFF;">交通</span>
             </div>
             
             <div class="traffic-body">
-              <!-- 1. 頂部摘要 -->
               <div class="traffic-summary-box">
                 <div class="traffic-summary-station">
                   <span class="summary-time">${item.timeStart || '--:--'}</span>
@@ -1515,7 +1522,6 @@
                 </div>
               </div>
 
-              <!-- 2. 備註提示框 -->
               ${combinedNotes ? `
                 <div class="traffic-note-bubble">
                   <i class="fa-solid fa-circle-info"></i>
@@ -1523,7 +1529,6 @@
                 </div>
               ` : ''}
 
-              <!-- 3. 交通圖（已恢復顯示） -->
               ${trafficImgHtml}
             </div>
           </div>
